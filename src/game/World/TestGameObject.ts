@@ -8,7 +8,7 @@ export default class TestGameObject{
     private _rotationSpeed: number = 0.01
 
     constructor() {
-        this._spriteRenderer = PIXI.Sprite.from(ENGINE.resources.getItemPath("shineBig"));
+        this._spriteRenderer = PIXI.Sprite.from(ENGINE.resources.getItemPath("test"));
         this._spriteRenderer.anchor.set(0.5);
         this._spriteRenderer.scale.set(1);
 

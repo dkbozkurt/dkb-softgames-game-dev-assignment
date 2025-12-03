@@ -16,27 +16,16 @@ namespace engine {
         orientation: DeviceOrientation;
     }
 
-    export type StoreURLS = Record<DeviceOS, string>;
-
-    export type AssetSourceType = 'texture' | 'gltfModel' | 'cubeTexture' | 'audio' | 'xmlFont' | 'font' | 'json';
+    export type AssetSourceType = 'texture' | 'audio' | 'font' | 'json';
 
     export type AssetSource = {
         name: game.AssetSourceName;
         type: AssetSourceType;
         path: string;
     }
-
 }
 
 declare module "*.json" {
-
-    const value: any;
-
-    export default value;
-
-}
-
-declare module "*.glsl" {
 
     const value: any;
 

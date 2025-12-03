@@ -1,7 +1,4 @@
 // engine/Core/Singleton.ts
-
-import GAME from "../../game/Game";
-
 /**
  * Base Singleton class for non-GameObject singletons
  */

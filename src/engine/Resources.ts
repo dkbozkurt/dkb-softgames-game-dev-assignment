@@ -22,7 +22,6 @@ export default class Resources {
         for (const source of this._sources) {
             switch (source.type) {
                 case 'texture':
-                case 'xmlFont':
                 case 'json':
                 case 'font':
                     {
