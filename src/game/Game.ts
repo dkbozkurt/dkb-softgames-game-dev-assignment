@@ -6,11 +6,13 @@ import TestGameObject from './World/TestGameObject';
 import EventSystem from '../engine/EventSystem';
 import Utilities from '../engine/Utils/Utilities';
 import MuteButton from './UI/MuteButton';
+import FPSCounter from './UI/FPSCounter';
 
 export default class GAME extends Singleton {
     public audioManager: AudioManager;
 
     private _muteButton: MuteButton | null = null;
+    private _fpsCounter: FPSCounter | null = null;
     private _camera: Camera | null = null;
     private _testGameObject: TestGameObject | null = null;
 
@@ -26,6 +28,7 @@ export default class GAME extends Singleton {
     private handleReady(): void {
         this._camera = new Camera();
         this._muteButton = new MuteButton();
+        this._fpsCounter = new FPSCounter();
         this._testGameObject = new TestGameObject();
     }
 
@@ -34,6 +37,7 @@ export default class GAME extends Singleton {
     }
 
     public update(): void {
+        this._fpsCounter?.update();
         this._testGameObject?.update();
     }
 
@@ -61,6 +65,7 @@ export default class GAME extends Singleton {
         this._camera?.destroy();
         this._testGameObject?.destroy();
         this._muteButton?.destroy();
+        this._fpsCounter?.destroy();
         super.destroy();
     }
 }
