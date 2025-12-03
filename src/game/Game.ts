@@ -1,71 +1,66 @@
 import * as PIXI from 'pixi.js';
-
-import AudioManager from "./Core/AudioManager.ts"
-import Camera from "./World/Camera.ts"
-import TestGameObject from "./World/TestGameObject.ts";
-import EventSystem from "../engine/EventSystem.ts";
-import Utilities from "../engine/Utils/Utilities.ts";
-import { Singleton } from '../engine/Components/Singleton.ts';
-import MuteButton from './UI/MuteButton.ts';
+import { Singleton } from '../engine/Components/Singleton';
+import AudioManager from './Core/AudioManager';
+import Camera from './World/Camera';
+import TestGameObject from './World/TestGameObject';
+import EventSystem from '../engine/EventSystem';
+import Utilities from '../engine/Utils/Utilities';
+import MuteButton from './UI/MuteButton';
 
 export default class GAME extends Singleton {
-    public audioManager: AudioManager
-    private _muteButton: MuteButton;
-    private _camera!: Camera
-    private _testGameObject!: TestGameObject
+    public audioManager: AudioManager;
+
+    private _muteButton: MuteButton | null = null;
+    private _camera: Camera | null = null;
+    private _testGameObject: TestGameObject | null = null;
 
     constructor() {
-
         super();
 
         Utilities.bindMethods(this, ['handleReady']);
 
-        this.audioManager = new AudioManager()
-        this._muteButton = new MuteButton();
-
-        EventSystem.on('ready', this.handleReady)
+        this.audioManager = AudioManager.instance();
+        EventSystem.on('ready', this.handleReady);
     }
 
     private handleReady(): void {
         this._camera = new Camera();
-
+        this._muteButton = new MuteButton();
         this._testGameObject = new TestGameObject();
     }
 
-    public resize() {
+    public resize(): void {
         this._camera?.resize();
     }
 
-    public update() {
+    public update(): void {
         this._testGameObject?.update();
     }
 
-    public fixedUpdate() {
-
-    }
-
-    public destroy() {
-
-        EventSystem.off('ready', this.handleReady)
-
-        this.audioManager.destroy()
-        this._camera?.destroy()
-        this._testGameObject?.destroy()
-    }
+    public fixedUpdate(): void {}
 
     public add(item: PIXI.Container): void {
-        this._camera.add(item);
+        this._camera?.add(item);
     }
 
     public addWithPosition(item: PIXI.Container, position: PIXI.Point): void {
-        this._camera.addWithPosition(item, position);
+        this._camera?.addWithPosition(item, position);
     }
 
     public setPositionInWorld(item: PIXI.Container, position: PIXI.Point): void {
-        this._camera.setPosition(item, position);
+        this._camera?.setPosition(item, position);
     }
 
     public remove(item: PIXI.Container): void {
-        this._camera.remove(item);
+        this._camera?.remove(item);
+    }
+
+    public destroy(): void {
+        EventSystem.off('ready', this.handleReady);
+        this.audioManager.destroy();
+        this._camera?.destroy();
+        this._testGameObject?.destroy();
+        this._muteButton?.destroy();
+        super.destroy();
     }
 }

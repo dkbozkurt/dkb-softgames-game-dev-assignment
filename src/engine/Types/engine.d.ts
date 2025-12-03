@@ -1,5 +1,4 @@
 namespace engine {
-
     export type DeviceOS = 'iOS' | 'Android' | 'WindowsPhone' | 'Unknown';
 
     export type DeviceOrientation = 'portrait' | 'landscape';
@@ -11,10 +10,10 @@ namespace engine {
         screenSize: {
             width: number;
             height: number;
-        }
+        };
         browserVersion: string;
         orientation: DeviceOrientation;
-    }
+    };
 
     export type AssetSourceType = 'texture' | 'audio' | 'font' | 'json';
 
@@ -22,13 +21,20 @@ namespace engine {
         name: game.AssetSourceName;
         type: AssetSourceType;
         path: string;
-    }
+    };
+
+    export type ResizeData = {
+        width: number;
+        height: number;
+        pixelRatio: number;
+    };
+
+    export type OrientationChangeData = {
+        orientation: DeviceOrientation;
+    };
 }
 
-declare module "*.json" {
-
-    const value: any;
-
+declare module '*.json' {
+    const value: unknown;
     export default value;
-
 }

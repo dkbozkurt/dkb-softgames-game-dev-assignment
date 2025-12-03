@@ -1,14 +1,12 @@
-import * as PIXI from 'pixi.js'
+import * as PIXI from 'pixi.js';
 import ENGINE from '../../engine/Engine.ts'
-import EventSystem from '../../engine/EventSystem.ts';
-import Utilities from '../../engine/Utils/Utilities.ts';
+import EventSystem from '../../engine/EventSystem';
+import Utilities from '../../engine/Utils/Utilities';
 
 export default class Camera {
-
-    private _container!: PIXI.Container
-    private _orthographicSize: number = 5;
-
-    private _unitsToFitHeight: number = 10
+    private _container: PIXI.Container;
+    private _orthographicSize: number;
+    private _unitsToFitHeight: number;
 
     constructor(orthographicSize: number = 5) {
         this._container = new PIXI.Container();
@@ -16,62 +14,50 @@ export default class Camera {
         this._unitsToFitHeight = this._orthographicSize * 2 * ENGINE.UNIT_MULTIPLY_CONSTANT;
 
         Utilities.bindMethods(this, ['handleOrientationChange']);
-
         EventSystem.on('orientationChange', this.handleOrientationChange);
 
-        this.setup()
+        this.setup();
     }
 
-    private setup() {
-
-        ENGINE.application.add(this._container)
-
+    private setup(): void {
+        ENGINE.application.add(this._container);
         this._container.pivot.set(0.5);
         this._container.zIndex = 0;
-
         this.resize();
     }
 
-    private handleOrientationChange(data: { orientation: engine.DeviceOrientation }): void {
-        console.log('Orientation changed to:', data.orientation);
+    private handleOrientationChange(): void {
         this.resize();
     }
 
     public resize(): void {
-
         this._container.position.set(
             ENGINE.viewport.width / 2,
             ENGINE.viewport.height / 2
-        )
+        );
 
         const pixelsPerUnit = ENGINE.viewport.height / this._unitsToFitHeight;
-
-        // Apply the scale to the container
-        this._container.scale.set(pixelsPerUnit, pixelsPerUnit);
+        this._container.scale.set(pixelsPerUnit);
     }
 
     public setOrthographicSize(size: number): void {
-        this._orthographicSize = size
+        this._orthographicSize = size;
         this._unitsToFitHeight = this._orthographicSize * 2 * ENGINE.UNIT_MULTIPLY_CONSTANT;
-        this.resize()
+        this.resize();
     }
 
-    public get orthographicSize(): number {
-        return this._orthographicSize;
-    }
+    public get orthographicSize(): number { return this._orthographicSize; }
 
-    /**
-     * Add a sprite with Unity-like positioning
-     * @param item The sprite or display object to add
-     * @param position Position in Unity-like coordinates
-     */
     public addWithPosition(item: PIXI.Container, position: PIXI.Point): void {
         this.add(item);
         this.setPosition(item, position);
     }
 
     public setPosition(item: PIXI.Container, position: PIXI.Point): void {
-        item.position.set(position.x * ENGINE.UNIT_MULTIPLY_CONSTANT, -position.y * ENGINE.UNIT_MULTIPLY_CONSTANT);
+        item.position.set(
+            position.x * ENGINE.UNIT_MULTIPLY_CONSTANT,
+            -position.y * ENGINE.UNIT_MULTIPLY_CONSTANT
+        );
     }
 
     public add(item: PIXI.Container): void {
@@ -84,8 +70,7 @@ export default class Camera {
     }
 
     public destroy(): void {
-        EventSystem.off('onOrientationChange', this.handleOrientationChange);
-
+        EventSystem.off('orientationChange', this.handleOrientationChange);
         ENGINE.application.remove(this._container);
         this._container.destroy({ children: true });
     }

@@ -6,18 +6,18 @@ const sources: engine.AssetSource[] = [
     {
         name: 'poppinsBold',
         type: 'font',
-        path: poppinsBoldFont,
+        path: poppinsBoldFont
     },
     {
         name: 'backgroundAudio',
         type: 'audio',
-        path: backgroundAudio,
+        path: backgroundAudio
     },
     {
         name: 'test',
         type: 'texture',
         path: testTexture
     }
-]
+];
 
 export default sources;

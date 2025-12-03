@@ -1,45 +1,27 @@
-// engine/Core/Singleton.ts
-/**
- * Base Singleton class for non-GameObject singletons
- */
 export abstract class Singleton {
-    private static instances: Map<string, Singleton> = new Map();
+    private static _instances: Map<string, Singleton> = new Map();
 
-    constructor() {
+    protected constructor() {
         const className = this.constructor.name;
-        const existingInstance = Singleton.instances.get(className);
-
-        if (existingInstance) {
-            // 🪄 Replace the newly allocated object with the existing one
-            return existingInstance as this;
+        if (Singleton._instances.has(className)) {
+            return Singleton._instances.get(className) as this;
         }
-
-        // Save new instance before child constructor continues
-        Singleton.instances.set(className, this);
+        Singleton._instances.set(className, this);
     }
 
-    /**
-     * Get singleton instance (preferred way)
-     */
     public static instance<T extends Singleton>(this: new () => T): T {
         const className = this.name;
-
-        if (!Singleton.instances.has(className)) {
-            // 👇 Call `new` once — child constructor runs ONCE
+        if (!Singleton._instances.has(className)) {
             new this();
         }
-
-        return Singleton.instances.get(className) as T;
+        return Singleton._instances.get(className) as T;
     }
 
-    /**
-     * Reset the singleton
-     */
     public static destroyInstance(className: string): void {
-        Singleton.instances.delete(className);
+        Singleton._instances.delete(className);
     }
 
     public destroy(): void {
-        Singleton.instances.delete(this.constructor.name);
+        Singleton._instances.delete(this.constructor.name);
     }
 }

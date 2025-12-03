@@ -1,13 +1,13 @@
 import * as PIXI from 'pixi.js';
-import ENGINE from './Engine.ts'
+import ENGINE from './Engine';
 
 export default class Application extends PIXI.Application {
-    constructor(backgroundColor: PIXI.ColorSource | undefined = 0xCFEFFC) {
+    constructor(backgroundColor: PIXI.ColorSource = 0xcfeffc) {
         super({
             view: ENGINE.canvas as HTMLCanvasElement,
             resizeTo: window,
             antialias: true,
-            backgroundColor,
+            backgroundColor
         });
     }
 
