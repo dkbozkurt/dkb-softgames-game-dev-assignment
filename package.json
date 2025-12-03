@@ -1,0 +1,32 @@
+{
+	"name": "dkb-softgames-game-dev-assignment",
+	"private": true,
+	"version": "1.0.0",
+	"description": "A game developer assignment built with TypeScript and PixiJS v7.",
+	"type": "module",
+	"main": "main.ts",
+	"scripts": {
+		"compile:css": "sass --watch --no-source-map src/main.scss src/style.css",
+		"dev": "vite",
+		"preview": "vite preview",
+		"build": "tsc && vite build",
+		"deploy": "gh-pages -d dist",
+		"test": "vitest"
+	},
+	"dependencies": {
+		"pixi.js": "7.4.2",
+		"@tweenjs/tween.js": "^25.0.0",
+		"css-filter-converter": "^1.0.109",
+		"lil-gui": "^0.21.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.1",
+		"gh-pages": "^6.1.1",
+		"sass": "^1.83.0",
+		"typescript": "~5.6.2",
+		"vite": "^6.0.1",
+		"prettier": "^3.4.1",
+		"vitest": "^2.1.8"
+	},
+	"author": "Dogukan Kaan Bozkurt @dkbozkurt"
+}

@@ -1,0 +1,756 @@
+/*
+Change format while importing to font depends on its type as following.
+
+woff - format('woff')
+woff2 - format('woff2')
+ttf - format('truetype')
+otf - format('opentype')
+eof - format('embedded-opentype')
+svg - format('svg')
+
+*/
+@font-face {
+  font-family: "PoppinsBold";
+  src: url("@/fonts/Poppins-Bold.ttf") format("truetype");
+}
+*,
+*::before *::after {
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  user-select: none;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+@keyframes animateDownloadButton {
+  0% {
+    top: 50%;
+    animation-timing-function: cubic-bezier(0.6, -0.28, 0.735, 0.045);
+    /* Ease.InBack approximation */
+  }
+  50% {
+    top: 60%;
+    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    /* Ease.OutQuad approximation */
+  }
+  100% {
+    top: 50%;
+  }
+}
+@keyframes animateFullRotate {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+@keyframes animateScaleLoop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.85);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes animateScaleUpToOnePointOneFiveLoop {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+@keyframes animateFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes animateFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes animateClick {
+  from {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes animateScaleUpToOne {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+html {
+  height: 100%;
+  overflow: hidden;
+  touch-action: manipulation;
+  font-family: "PoppinsBold", sans-serif;
+}
+
+.webgl {
+  position: fixed;
+  top: 0;
+  left: 0;
+  outline: none;
+}
+
+.preloader__background__overlay {
+  position: absolute;
+  inset: 0;
+  background: #f5842d;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.preloader__wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.preloader__app-icon {
+  width: 231px;
+  height: 42px;
+  margin-bottom: 20px;
+}
+.preloader__bar__container {
+  width: 200px;
+  height: 4px;
+}
+.preloader__bar__container__outer {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.preloader__bar__container__fill {
+  width: 0;
+  height: 100%;
+  background: white;
+  transition: width 0.3s ease;
+}
+.preloader__company-logo {
+  position: absolute;
+  bottom: 10vh;
+}
+.preloader__company-logo svg {
+  width: 6vh;
+  height: 10vh;
+}
+.preloader__ended {
+  display: none;
+  transition: opacity 0.5s ease-out;
+  opacity: 0;
+}
+
+.banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 9vh;
+  display: none;
+  z-index: 199;
+}
+@media (max-height: 520px) {
+  .banner {
+    height: 45px;
+  }
+}
+.banner__background {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 150%;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  pointer-events: none;
+}
+.banner__logo__container, .banner__button__container {
+  position: absolute;
+  bottom: 3px;
+  width: 10vh;
+  height: 10vh;
+  pointer-events: none;
+}
+@media (max-height: 520px) {
+  .banner__logo__container, .banner__button__container {
+    height: 45px;
+    width: 45px;
+  }
+}
+.banner__logo__container {
+  left: 8px;
+}
+@media (max-height: 520px) {
+  .banner__logo__container {
+    left: 10px;
+    bottom: 10px;
+  }
+}
+.banner__logo__container__shine, .banner__logo__container__icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-size: cover;
+  background-position: center;
+}
+.banner__logo__container__shine {
+  width: 16vh;
+  height: 16vh;
+}
+@media (max-height: 520px) {
+  .banner__logo__container__shine {
+    height: 90px;
+    width: 90px;
+  }
+}
+.banner__logo__container__shine.animate {
+  animation: animateFullRotate 3s infinite linear;
+}
+.banner__logo__container__icon {
+  width: 8.5vh;
+  height: 8.5vh;
+}
+@media (max-height: 520px) {
+  .banner__logo__container__icon {
+    height: 45px;
+    width: 45px;
+  }
+}
+.banner__button__container {
+  right: 11px;
+}
+@media (max-height: 520px) {
+  .banner__button__container {
+    right: 22px;
+    bottom: 10px;
+  }
+}
+.banner__button__container__background, .banner__button__container__foreground {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 11vh;
+  height: 7vh;
+  background-size: cover;
+  background-position: center;
+  border-radius: 25px;
+}
+@media (max-height: 520px) {
+  .banner__button__container__background, .banner__button__container__foreground {
+    height: 40px;
+    width: 63px;
+  }
+}
+.banner__button__container__background {
+  top: 60%;
+}
+.banner__button__container__foreground.animate {
+  animation: animateDownloadButton 1.5s infinite ease-in-out;
+}
+.banner__button__container__download-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 7vh;
+  height: 7vh;
+  background-size: cover;
+  background-position: center;
+}
+@media (max-height: 520px) {
+  .banner__button__container__download-image {
+    height: 40px;
+    width: 40px;
+  }
+}
+.banner__disclaimer__container {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50vw;
+  height: 6vh;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+.banner__disclaimer__container__text {
+  text-align: center;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  font-size: clamp(0.6rem, 0.7vw + 0.4rem, 1rem);
+  line-height: 0.9;
+}
+
+.mute__button {
+  display: none;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+.mute__button__icon {
+  pointer-events: none;
+  opacity: 0.5;
+  width: 40px;
+  height: 40px;
+  background-size: cover;
+  background-position: center;
+}
+
+.timer__counter {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgb(255, 255, 255);
+  width: 12vh;
+  height: 5.5vh;
+  pointer-events: none;
+  border-radius: 16px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+@media (max-height: 520px) {
+  .timer__counter {
+    height: 30px;
+    width: 63px;
+  }
+}
+.timer__counter__icon {
+  width: 4vh;
+  height: 4vh;
+  background-size: cover;
+  background-position: center;
+}
+@media (max-height: 520px) {
+  .timer__counter__icon {
+    height: 20px;
+    width: 20px;
+  }
+}
+.timer__counter__text {
+  padding-left: 5px;
+  font-family: "PoppinsBold", sans-serif;
+  font-weight: bold;
+  font-size: 2.5vh;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: fit-content;
+}
+@media (max-height: 520px) {
+  .timer__counter__text {
+    font-size: 15px;
+    padding-left: 3px;
+  }
+}
+
+.endCard {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 198;
+  display: none;
+}
+.endCard__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.35);
+}
+.endCard__base-shine-effect {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vh;
+  height: 90vh;
+  min-width: 700px;
+  min-height: 700px;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+}
+.endCard__base-shine-effect.animate {
+  animation: animateFullRotate 6s infinite linear;
+}
+.endCard__container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.endCard__container.animate {
+  animation: animateFadeIn 200ms linear forwards, animateScaleUpToOne 200ms linear forwards;
+}
+.endCard__container__background {
+  position: relative;
+  padding: 2px;
+  width: 90%;
+  height: 70%;
+  min-width: 310px;
+  max-width: 500px;
+  min-height: 220px;
+  max-height: 750px;
+  background-color: #fff7f2;
+  border-radius: 40px;
+  box-shadow: 0 10px 10px rgba(0, 0, 0, 0.4);
+}
+.endCard__container__foreground {
+  padding: 10px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 40px;
+  background-color: #f5842d;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.endCard__container__logo {
+  position: relative;
+  z-index: 0;
+  width: 20vh;
+  min-width: 100px;
+  max-width: 220px;
+  height: 20vh;
+  min-height: 100px;
+  max-height: 220px;
+  margin-top: -10vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.endCard__container__logo__glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 45vh;
+  height: 45vh;
+  min-width: 200px;
+  min-height: 200px;
+  background-size: cover;
+  background-position: center;
+}
+.endCard__container__logo__icon-container {
+  position: relative;
+  width: 100%;
+  height: 90%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.endCard__container__logo__icon {
+  width: 90%;
+  height: 90%;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.endCard__container__app__title {
+  width: 100%;
+  text-align: center;
+  font-size: 4.5vh;
+  font-weight: bold;
+  color: white;
+  margin-top: -10px;
+  margin-bottom: -20px;
+}
+@media (max-height: 520px) {
+  .endCard__container__app__title {
+    font-size: 17px;
+  }
+}
+.endCard__container__main-text {
+  font-size: 2.5vh;
+  font-weight: regular;
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  max-width: 100%;
+  line-height: 1.3;
+}
+@media (max-height: 520px) {
+  .endCard__container__main-text {
+    font-size: 20px;
+  }
+}
+.endCard__container__game-score-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60%;
+  height: 8vh;
+  margin-top: 3vh;
+  margin-bottom: 10px;
+}
+.endCard__container__game-score-group__icon {
+  width: 6vh;
+  height: 6vh;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+@media (max-height: 520px) {
+  .endCard__container__game-score-group__icon {
+    width: 30px;
+    height: 30px;
+  }
+}
+.endCard__container__game-score-group__text {
+  font-size: 4vh;
+  font-weight: bold;
+  text-align: center;
+  margin-left: 10px;
+  color: white;
+}
+@media (max-height: 520px) {
+  .endCard__container__game-score-group__text {
+    font-size: 20px;
+  }
+}
+.endCard__container__game-money-group {
+  background-color: rgba(255, 255, 255, 0.2666666667);
+  border-radius: 25px;
+  width: 80%;
+  height: 12vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.endCard__container__game-money-group__text {
+  font-size: 6vh;
+  font-weight: bold;
+  text-align: center;
+}
+@media (max-height: 520px) {
+  .endCard__container__game-money-group__text {
+    font-size: 20px;
+  }
+}
+.endCard__container__button-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+}
+.endCard__container__secondary-button {
+  background-color: #fff7f2;
+  position: relative;
+  width: 40%;
+  height: 5vh;
+  max-height: 70px;
+  min-height: 40px;
+  margin-bottom: 15px;
+  border-radius: 80px;
+  overflow: hidden;
+}
+.endCard__container__secondary-button__foreground {
+  position: absolute;
+  background-color: #f5842d;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 95%;
+  height: 90%;
+  border-radius: 80px;
+}
+.endCard__container__secondary-button__text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2vh;
+  font-weight: bold;
+  text-align: center;
+  width: 80%;
+  line-height: 1.2;
+}
+@media (max-height: 750px) {
+  .endCard__container__secondary-button__text {
+    font-size: 18px;
+  }
+}
+.endCard__container__primary-button {
+  background-color: #1A79B4;
+  position: relative;
+  width: 75%;
+  height: 10vh;
+  max-height: 110px;
+  min-height: 80px;
+  border-radius: 50px;
+  margin-bottom: -40px;
+  overflow: hidden;
+}
+.endCard__container__primary-button__foreground {
+  position: absolute;
+  background-color: #21AAFF;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 98%;
+  height: 95%;
+  border-radius: 50px;
+}
+.endCard__container__primary-button__text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 4vh;
+  font-weight: bold;
+  text-align: center;
+  width: 80%;
+}
+@media (max-height: 750px) {
+  .endCard__container__primary-button {
+    font-size: 20px;
+  }
+}
+.endCard__container__primary-button.animate {
+  animation: animateScaleUpToOnePointOneFiveLoop 800ms linear infinite;
+}
+
+.tutorial {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 197;
+  pointer-events: none;
+  display: block;
+}
+.tutorial__text__container {
+  position: relative;
+  width: 90%;
+  left: 5%;
+  height: 15vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20vh;
+}
+@media (max-height: 520px) {
+  .tutorial__text__container {
+    height: 60px;
+  }
+}
+.tutorial__text__container.animateFadeOut {
+  animation: animateFadeOut 200ms linear forwards;
+}
+.tutorial__text {
+  font-family: "PoppinsBold", sans-serif;
+  font-weight: bold;
+  font-size: clamp(18px, 5vw, 32px);
+  line-height: 1.2;
+  text-align: center;
+  color: #ffffff;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-height: 520px) {
+  .tutorial__text {
+    font-size: 16px;
+  }
+}
+.tutorial__text.animateScale {
+  animation: animateScaleLoop 1.25s infinite linear;
+}
+.tutorial__hand__container {
+  position: fixed;
+  width: 15vh;
+  height: 15vh;
+  top: 75%;
+  left: 50%;
+}
+.tutorial__hand__container.animateFadeOut {
+  animation: animateFadeOut 200ms linear forwards;
+}
+.tutorial__hand__helper {
+  position: absolute;
+  transform: translate(-50%, -50%) scale(1.75);
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.tutorial__hand__pivot {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  transform: translate(0%, 0%);
+}
+.tutorial__hand__pivot.animateClick {
+  animation: animateClick 400ms linear forwards;
+}
+.tutorial__hand__glow {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.tutorial__hand__image {
+  position: absolute;
+  transform: rotate(-15deg);
+  left: -32px;
+  top: -10px;
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
