@@ -6,9 +6,11 @@ import TestGameObject from "./World/TestGameObject.ts";
 import EventSystem from "../engine/EventSystem.ts";
 import Utilities from "../engine/Utils/Utilities.ts";
 import { Singleton } from '../engine/Components/Singleton.ts';
+import MuteButton from './UI/MuteButton.ts';
 
 export default class GAME extends Singleton {
     public audioManager: AudioManager
+    private _muteButton: MuteButton;
     private _camera!: Camera
     private _testGameObject!: TestGameObject
 
@@ -19,6 +21,7 @@ export default class GAME extends Singleton {
         Utilities.bindMethods(this, ['handleReady']);
 
         this.audioManager = new AudioManager()
+        this._muteButton = new MuteButton();
 
         EventSystem.on('ready', this.handleReady)
     }

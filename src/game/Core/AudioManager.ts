@@ -9,7 +9,7 @@ export default class AudioManager extends Singleton {
 
     public audios!: AudioResources;
 
-    private _isMuted: boolean = true;
+    private _isMuted: boolean = false;
     private _isActiveForAudios: boolean = false;
 
     constructor() {
@@ -68,7 +68,7 @@ export default class AudioManager extends Singleton {
             "Background": ENGINE.resources.items.backgroundAudio,
         } as const;
 
-        this.muteAudios()
+        // this.muteAudios()
     }
 
     private setMuteStatus(status: boolean) {
