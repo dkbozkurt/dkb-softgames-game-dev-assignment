@@ -2,7 +2,6 @@ import * as PIXI from 'pixi.js';
 import * as TWEEN from '@tweenjs/tween.js';
 import { Singleton } from '../engine/Components/Singleton';
 import AudioManager from './Core/AudioManager';
-import TestGameObject from './World/TestGameObject';
 import EventSystem from '../engine/EventSystem';
 import Utilities from '../engine/Utils/Utilities';
 import MuteButton from './UI/MuteButton';
@@ -21,7 +20,6 @@ export default class GAME extends Singleton {
     private _baseHeight: number = 1080;
     private _muteButton: MuteButton | null = null;
     private _fpsCounter: FPSCounter | null = null;
-    private _testGameObject: TestGameObject | null = null;
     private _backButton: BackButton | null = null;
     private _sceneManager: SceneManager;
     private _mainMenuScene: MainMenuScene;
@@ -51,7 +49,6 @@ export default class GAME extends Singleton {
         this.setupWorld();
         this._muteButton = new MuteButton();
         this._fpsCounter = new FPSCounter();
-        this._testGameObject = new TestGameObject();
         this._backButton = new BackButton(this._worldContainer);
         this.setupScenes();
     }
@@ -103,7 +100,6 @@ export default class GAME extends Singleton {
     public update(): void {
         TWEEN.update();
         this._fpsCounter?.update();
-        this._testGameObject?.update();
         this._sceneManager.update();
     }
 
@@ -131,7 +127,6 @@ export default class GAME extends Singleton {
         EventSystem.off('ready', this.handleReady);
         this.audioManager.destroy();
         this._sceneManager.destroy();
-        this._testGameObject?.destroy();
         this._muteButton?.destroy();
         this._fpsCounter?.destroy();
         this._backButton?.destroy();
