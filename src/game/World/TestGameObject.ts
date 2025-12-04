@@ -1,22 +1,29 @@
-import * as PIXI from 'pixi.js';
 import GAME from '../Game';
 import ENGINE from '../../engine/Engine';
+import { Sprite } from '../../engine/Components/Sprite';
+import Utilities from '../../engine/Utils/Utilities';
 
-export default class TestGameObject {
-    private _sprite: PIXI.Sprite;
+export default class TestGameObject extends Sprite{
     private _rotationSpeed: number = 0.01;
 
     constructor() {
-        this._sprite = PIXI.Sprite.from(ENGINE.resources.getItemPath('test'));
-        this._sprite.anchor.set(0.5);
-        this._sprite.scale.set(1);
-        this._sprite.eventMode = 'static';
-        this._sprite.cursor = 'pointer';
+        super(
+            0,
+            0,
+            1,
+            1,
+            ENGINE.resources.getItemPath('test'),
+        );
 
-        this._sprite.on('pointerdown', this.onPointerDown);
-        this._sprite.on('pointerup', this.onPointerUp);
+        this.eventMode = 'static';
+        this.cursor = 'pointer';
 
-        GAME.instance().add(this._sprite);
+        Utilities.bindMethods(this, ['onPointerDown', 'onPointerUp', 'update']);
+
+        this.on('pointerdown', this.onPointerDown);
+        this.on('pointerup', this.onPointerUp);
+
+        GAME.instance().add(this);
     }
 
     private onPointerDown = (): void => {
@@ -28,12 +35,12 @@ export default class TestGameObject {
     };
 
     public update(): void {
-        this._sprite.rotation += this._rotationSpeed;
+        this.rotation += this._rotationSpeed;
     }
 
     public destroy(): void {
-        this._sprite.off('pointerdown', this.onPointerDown);
-        this._sprite.off('pointerup', this.onPointerUp);
-        this._sprite.destroy();
+        this.off('pointerdown', this.onPointerDown);
+        this.off('pointerup', this.onPointerUp);
+        this.destroy();
     }
 }
