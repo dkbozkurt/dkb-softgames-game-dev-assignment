@@ -3,7 +3,7 @@ import * as TWEEN from '@tweenjs/tween.js';
 import * as PIXI from 'pixi.js';
 
 export default class CardSprite extends Sprite {
-    private _tween: TWEEN.Tween<CardSprite> | null = null;
+    private _tween: TWEEN.Tween<{x: number, y: number, rotation: number}> | null = null;
 
     constructor(texture: PIXI.Texture, x: number = 0, y: number = 0) {
         super(x, y, 2, 2, texture);
@@ -18,9 +18,18 @@ export default class CardSprite extends Sprite {
     ): void {
         this.stopAnimation();
 
-        this._tween = new TWEEN.Tween(this)
-            .to({ x: targetX, y: targetY, rotation: targetRotation }, duration)
+        const startValues = { x: this.x, y: this.y, rotation: this.rotation };
+        const endValues = { x: targetX, y: targetY, rotation: targetRotation };
+
+        this._tween = new TWEEN.Tween(startValues)
+            .to(endValues, duration)
             .easing(TWEEN.Easing.Quadratic.InOut)
+            .onUpdate((values)=>
+            {
+                this.x = values.x;
+                this.y = values.y;
+                this.rotation = values.rotation;
+            })
             .onComplete(() => {
                 onComplete?.();
             })

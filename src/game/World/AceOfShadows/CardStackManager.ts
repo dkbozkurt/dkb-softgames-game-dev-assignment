@@ -2,89 +2,102 @@ import * as PIXI from 'pixi.js';
 import CardSprite from './CardSprite';
 import Utilities from '../../../engine/Utils/Utilities';
 
-type StackConfig = {
+type Point = {
     x: number;
     y: number;
 };
 
 export default class CardStackManager {
-    private _leftStack: CardSprite[] = [];
-    private _rightStack: CardSprite[] = [];
+    private _mainDeck: CardSprite[] = [];
+    private _targetStacks: CardSprite[][] = [];
     private _container: PIXI.Container;
-    private _leftStackConfig: StackConfig;
-    private _rightStackConfig: StackConfig;
+
+    private _targetPositions: Point[];
     private _cardTexture: PIXI.Texture;
+
     private _moveInterval: NodeJS.Timeout | null = null;
     private _isAnimating: boolean = false;
+    private _currentTargetIndex: number = 0;
 
     // Configuration for randomness
-    private readonly POS_OFFSET = 5; // Pixels variance
-    private readonly ROT_OFFSET = 0.1; // Radians variance
+    private readonly POS_OFFSET = 15; // Pixels variance
+    private readonly ROT_OFFSET = 0.3; // Radians variance
+    private readonly CARD_SCALE = 0.65; // Increased scale
+
+    private readonly CARD_ANIMATION_START_DELAY = 1000;
+    private readonly CARD_ANIMATION_DURATION = 2000;
 
     constructor(
         container: PIXI.Container,
         cardTexture: PIXI.Texture,
-        leftStackConfig: StackConfig,
-        rightStackConfig: StackConfig
+        targetPositions: Point[]
     ) {
         this._container = container;
         this._cardTexture = cardTexture;
-        this._leftStackConfig = leftStackConfig;
-        this._rightStackConfig = rightStackConfig;
+        this._targetPositions = targetPositions;
+
+        // Initialize arrays for each target stack
+        this._targetPositions.forEach(() => {
+            this._targetStacks.push([]);
+        });
     }
 
     public initialize(totalCards: number): void {
-        this.createStacks(totalCards);
+        this.createMainDeck(totalCards);
         this.startCardMovement();
     }
 
-    private createStacks(totalCards: number): void {
+    private createMainDeck(totalCards: number): void {
+        // Create cards at the center (0,0)
         for (let i = 0; i < totalCards; i++) {
             const card = new CardSprite(
                 this._cardTexture,
-                this.getRandomPos(this._leftStackConfig.x),
-                this.getRandomPos(this._leftStackConfig.y)
+                this.getRandomPos(0),
+                this.getRandomPos(0)
             );
 
             card.rotation = this.getRandomRotation();
-            card.scale.set(0.5);
+            card.scale.set(this.CARD_SCALE);
 
             this._container.addChild(card);
-            this._leftStack.push(card);
+            this._mainDeck.push(card);
         }
     }
 
     private startCardMovement(): void {
         this._moveInterval = setInterval(() => {
             this.moveTopCard();
-        }, 1000);
+        }, this.CARD_ANIMATION_START_DELAY);
     }
 
     private moveTopCard(): void {
         if (this._isAnimating) return;
+        if (this._mainDeck.length <= 0) return;
 
-        if (this._leftStack.length > 0) {
-            this._isAnimating = true;
-            const card = this._leftStack.pop()!;
+        this._isAnimating = true;
+        const card = this._mainDeck.pop()!;
 
-            // Ensure the moving card renders on top of everything else
-            this._container.setChildIndex(card, this._container.children.length - 1);
+        // Ensure the moving card renders on top
+        this._container.setChildIndex(card, this._container.children.length - 1);
 
-            card.animateTo(
-                this.getRandomPos(this._rightStackConfig.x),
-                this.getRandomPos(this._rightStackConfig.y),
-                this.getRandomRotation(),
-                2000,
-                () => {
-                    this._rightStack.push(card);
-                    this._isAnimating = false;
+        // Get current target position
+        const targetPos = this._targetPositions[this._currentTargetIndex];
 
-                    if (this._leftStack.length === 0) {
-                        this.swapStacks();
-                    }
-                }
-            );
-        }
+        card.animateTo(
+            this.getRandomPos(targetPos.x),
+            this.getRandomPos(targetPos.y),
+            this.getRandomRotation(),
+            this.CARD_ANIMATION_DURATION,
+            () => {
+                // Add to the specific target stack array
+                this._targetStacks[this._currentTargetIndex].push(card);
+
+                // Move to next stack index for the next card (Circular round-robin)
+                this._currentTargetIndex = (this._currentTargetIndex + 1) % this._targetPositions.length;
+
+                this._isAnimating = false;
+            }
+        );
     }
 
     private getRandomPos(base: number): number {
@@ -95,18 +108,8 @@ export default class CardStackManager {
         return Utilities.getRandomFloatingNumber(-this.ROT_OFFSET, this.ROT_OFFSET);
     }
 
-    private swapStacks(): void {
-        const temp = this._leftStack;
-        this._leftStack = this._rightStack;
-        this._rightStack = temp;
-
-        const tempConfig = this._leftStackConfig;
-        this._leftStackConfig = this._rightStackConfig;
-        this._rightStackConfig = tempConfig;
-    }
-
     public update(): void {
-        // TWEEN.update() is handled in Game.ts, so we don't need it here
+
     }
 
     public destroy(): void {
@@ -115,8 +118,14 @@ export default class CardStackManager {
             this._moveInterval = null;
         }
 
-        [...this._leftStack, ...this._rightStack].forEach(card => card.destroy());
-        this._leftStack = [];
-        this._rightStack = [];
+        // Destroy main deck
+        this._mainDeck.forEach(card => card.destroy());
+        this._mainDeck = [];
+
+        // Destroy all target stacks
+        this._targetStacks.forEach(stack => {
+            stack.forEach(card => card.destroy());
+        });
+        this._targetStacks = [];
     }
 }
