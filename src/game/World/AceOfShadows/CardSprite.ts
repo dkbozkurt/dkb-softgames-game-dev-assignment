@@ -1,12 +1,13 @@
 import { Sprite } from '../../../engine/Components/Sprite';
-import * as TWEEN from '@tweenjs/tween.js';
+import gsap from 'gsap';
 import * as PIXI from 'pixi.js';
 
 export default class CardSprite extends Sprite {
-    private _tween: TWEEN.Tween<{x: number, y: number, rotation: number}> | null = null;
+    // Tween reference is no longer needed with gsap.killTweensOf(this)
 
     constructor(texture: PIXI.Texture, x: number = 0, y: number = 0) {
-        super(x, y, 2, 2, texture);
+        super(x, y,1,1, texture);
+        this.anchor.set(0.5);
     }
 
     public animateTo(
@@ -18,29 +19,30 @@ export default class CardSprite extends Sprite {
     ): void {
         this.stopAnimation();
 
-        const startValues = { x: this.x, y: this.y, rotation: this.rotation };
-        const endValues = { x: targetX, y: targetY, rotation: targetRotation };
+        const durationSec = duration / 1000;
 
-        this._tween = new TWEEN.Tween(startValues)
-            .to(endValues, duration)
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate((values)=>
-            {
-                this.x = values.x;
-                this.y = values.y;
-                this.rotation = values.rotation;
-            })
-            .onComplete(() => {
+        gsap.to(this, {
+            x: targetX,
+            y: targetY,
+            duration: durationSec,
+            ease: 'power2.inOut',
+            onComplete: () => {
                 onComplete?.();
-            })
-            .start();
+            }
+        });
+
+        gsap.to(this, {
+            rotation: targetRotation,
+            duration: durationSec,
+            ease: 'power3.in'
+        });
+    }
+
+    public update(): void {
     }
 
     public stopAnimation(): void {
-        if (this._tween) {
-            this._tween.stop();
-            this._tween = null;
-        }
+        gsap.killTweensOf(this);
     }
 
     public destroy(): void {

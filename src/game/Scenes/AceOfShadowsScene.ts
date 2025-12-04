@@ -6,7 +6,6 @@ import ENGINE from '../../engine/Engine';
 export default class AceOfShadowsScene extends Scene {
     private _cardStackManager: CardStackManager | null = null;
 
-    // CHANGE THIS VALUE TO DECIDE TARGET STACK COUNT
     private readonly STACK_COUNT = 3;
     private readonly CIRCLE_RADIUS = 250;
 
