@@ -1,12 +1,10 @@
 import * as PIXI from 'pixi.js';
-import * as TWEEN from '@tweenjs/tween.js';
 import CardSprite from './CardSprite';
+import Utilities from '../../../engine/Utils/Utilities';
 
 type StackConfig = {
     x: number;
     y: number;
-    offsetX: number;
-    offsetY: number;
 };
 
 export default class CardStackManager {
@@ -18,6 +16,10 @@ export default class CardStackManager {
     private _cardTexture: PIXI.Texture;
     private _moveInterval: NodeJS.Timeout | null = null;
     private _isAnimating: boolean = false;
+
+    // Configuration for randomness
+    private readonly POS_OFFSET = 5; // Pixels variance
+    private readonly ROT_OFFSET = 0.1; // Radians variance
 
     constructor(
         container: PIXI.Container,
@@ -40,10 +42,13 @@ export default class CardStackManager {
         for (let i = 0; i < totalCards; i++) {
             const card = new CardSprite(
                 this._cardTexture,
-                this._leftStackConfig.x + i * this._leftStackConfig.offsetX,
-                this._leftStackConfig.y + i * this._leftStackConfig.offsetY
+                this.getRandomPos(this._leftStackConfig.x),
+                this.getRandomPos(this._leftStackConfig.y)
             );
+
+            card.rotation = this.getRandomRotation();
             card.scale.set(0.5);
+
             this._container.addChild(card);
             this._leftStack.push(card);
         }
@@ -61,12 +66,14 @@ export default class CardStackManager {
         if (this._leftStack.length > 0) {
             this._isAnimating = true;
             const card = this._leftStack.pop()!;
-            const targetIndex = this._rightStack.length;
 
-            console.log('sa');
+            // Ensure the moving card renders on top of everything else
+            this._container.setChildIndex(card, this._container.children.length - 1);
+
             card.animateTo(
-                this._rightStackConfig.x + targetIndex * this._rightStackConfig.offsetX,
-                this._rightStackConfig.y + targetIndex * this._rightStackConfig.offsetY,
+                this.getRandomPos(this._rightStackConfig.x),
+                this.getRandomPos(this._rightStackConfig.y),
+                this.getRandomRotation(),
                 2000,
                 () => {
                     this._rightStack.push(card);
@@ -80,6 +87,14 @@ export default class CardStackManager {
         }
     }
 
+    private getRandomPos(base: number): number {
+        return base + Utilities.getRandomFloatingNumber(-this.POS_OFFSET, this.POS_OFFSET);
+    }
+
+    private getRandomRotation(): number {
+        return Utilities.getRandomFloatingNumber(-this.ROT_OFFSET, this.ROT_OFFSET);
+    }
+
     private swapStacks(): void {
         const temp = this._leftStack;
         this._leftStack = this._rightStack;
@@ -91,7 +106,7 @@ export default class CardStackManager {
     }
 
     public update(): void {
-        TWEEN.update();
+        // TWEEN.update() is handled in Game.ts, so we don't need it here
     }
 
     public destroy(): void {

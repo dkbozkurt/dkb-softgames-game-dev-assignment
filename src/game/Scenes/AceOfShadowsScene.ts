@@ -22,17 +22,14 @@ export default class AceOfShadowsScene extends Scene {
         const cardTexture = PIXI.Texture.from(ENGINE.resources.getItemPath('gameCard'));
 
         const leftStackConfig = {
-            x: -250,
-            y: -200,
-            offsetX: 1,
-            offsetY: 2
+            x: 0,
+            y: 0
         };
 
+        // Place the target stack slightly below to keep it visually centered/balanced
         const rightStackConfig = {
-            x: 150,
-            y: -200,
-            offsetX: 1,
-            offsetY: 2
+            x: 0,
+            y: 200
         };
 
         this._cardStackManager = new CardStackManager(
@@ -51,9 +48,7 @@ export default class AceOfShadowsScene extends Scene {
     }
 
     public update(): void {
-        if (this._isActive) {
-            this._cardStackManager?.update();
-        }
+        this._cardStackManager?.update();
     }
 
     public destroy(): void {
