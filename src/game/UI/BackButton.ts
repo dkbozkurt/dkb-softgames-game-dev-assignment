@@ -6,6 +6,9 @@ import Utilities from '../../engine/Utils/Utilities';
 import EventSystem from '../../engine/EventSystem';
 
 export default class BackButton extends Button {
+    private _baseHeight: number = 1080;
+    private _offsetPercentage: number = 0.08;
+
     constructor(parent: PIXI.Container) {
         const buttonStyle = {
             width: 80,
@@ -45,7 +48,8 @@ export default class BackButton extends Button {
     }
 
     private updatePosition(): void {
-        this.position.set(0, window.innerHeight / 2 - 80);
+        const yPosition = (this._baseHeight / 2) - (this._baseHeight * this._offsetPercentage);
+        this.position.set(0, yPosition);
     }
 
     public setVisible(visible: boolean): void {

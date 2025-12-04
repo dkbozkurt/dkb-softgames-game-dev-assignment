@@ -18,7 +18,7 @@ export default class MainMenuScene extends Scene {
         this._titleText = new Text(
             0,
             -250,
-            'Softgames Assignment',
+            'Main Menu',
             { fontFamily: 'PoppinsBold', fontSize: 48, fill: 0xffffff },
             this
         );

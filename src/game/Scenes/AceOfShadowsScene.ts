@@ -2,7 +2,7 @@ import { Scene } from './Scene';
 import { Text } from '../../engine/Components/Text';
 
 export default class AceOfShadowsScene extends Scene {
-    private _titleText: Text;
+    private _titleText!: Text;
 
     constructor() {
         super();
