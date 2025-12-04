@@ -11,6 +11,7 @@ import ENGINE from '../engine/Engine';
 export default class GAME extends Singleton {
     public audioManager: AudioManager;
     private _worldContainer: PIXI.Container;
+    private _baseHeight: number = 1080;
     private _muteButton: MuteButton | null = null;
     private _fpsCounter: FPSCounter | null = null;
     private _testGameObject: TestGameObject | null = null;
@@ -25,7 +26,6 @@ export default class GAME extends Singleton {
         this._worldContainer = new PIXI.Container();
 
         EventSystem.on('ready', this.handleReady);
-        EventSystem.on('orientationChange', this.handleOrientationChange);
     }
 
     private handleReady(): void {
@@ -38,22 +38,21 @@ export default class GAME extends Singleton {
     private setupWorld(): void {
         ENGINE.application.add(this._worldContainer);
         this._worldContainer.zIndex = 0;
-        this.centerWorld();
+        this.updateWorldTransform();
     }
 
-    private centerWorld(): void {
+    private updateWorldTransform(): void {
         this._worldContainer.position.set(
             ENGINE.viewport.width / 2,
             ENGINE.viewport.height / 2
         );
-    }
 
-    private handleOrientationChange(): void {
-        this.centerWorld();
+        const scale = ENGINE.viewport.height / this._baseHeight;
+        this._worldContainer.scale.set(scale);
     }
 
     public resize(): void {
-        this.centerWorld();
+        this.updateWorldTransform();
     }
 
     public update(): void {
