@@ -32,7 +32,7 @@ export default class CardSprite extends Sprite {
         gsap.to(this, {
             rotation: targetRotation,
             duration: durationSec,
-            ease: 'power3.in'
+            ease: 'power2.in'
         });
     }
 

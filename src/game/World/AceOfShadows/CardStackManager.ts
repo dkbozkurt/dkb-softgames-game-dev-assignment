@@ -26,12 +26,18 @@ export default class CardStackManager {
     private readonly CARD_ANIMATION_START_DELAY = 1000;
     private readonly CARD_ANIMATION_DURATION = 2000;
 
+    private readonly Z_INDEX_DECK = 10;
+    private readonly Z_INDEX_TARGET = 50;
+    private readonly Z_INDEX_MOVING = 100;
+
     constructor(
         container: PIXI.Container,
         cardTexture: PIXI.Texture,
         targetPositions: Point[]
     ) {
         this._container = container;
+        this._container.sortableChildren = true;
+
         this._cardTexture = cardTexture;
         this._targetPositions = targetPositions;
 
@@ -58,6 +64,8 @@ export default class CardStackManager {
             card.rotation = this.getRandomRotation();
             card.scale.set(this.CARD_SCALE);
 
+            card.zIndex = this.Z_INDEX_DECK + i;
+
             this._container.addChild(card);
             this._mainDeck.push(card);
         }
@@ -82,12 +90,11 @@ export default class CardStackManager {
                 clearInterval(this._moveInterval);
                 this._moveInterval = null;
             }
+            return;
         }
 
         const card = this._mainDeck.pop()!;
-
-        // Ensure the moving card renders on top
-        this._container.setChildIndex(card, this._container.children.length - 1);
+        card.zIndex = this.Z_INDEX_MOVING + this._mainDeck.length;
 
         const targetIndex = this._currentTargetIndex;
         const targetPos = this._targetPositions[targetIndex];
@@ -107,6 +114,7 @@ export default class CardStackManager {
                 if (!currentStack) return;
 
                 currentStack.push(card);
+                card.zIndex = this.Z_INDEX_TARGET + currentStack.length;
             }
         );
     }
