@@ -16,7 +16,6 @@ export default class CardStackManager {
     private _cardTexture: PIXI.Texture;
 
     private _moveInterval: NodeJS.Timeout | null = null;
-    private _isAnimating: boolean = false;
     private _currentTargetIndex: number = 0;
 
     // Configuration for randomness
@@ -67,23 +66,34 @@ export default class CardStackManager {
     private startCardMovement(): void {
         if (this._moveInterval) clearInterval(this._moveInterval);
 
+        this.moveTopCard();
+
         this._moveInterval = setInterval(() => {
             this.moveTopCard();
         }, this.CARD_ANIMATION_START_DELAY);
     }
 
     private moveTopCard(): void {
-        if (this._isAnimating) return;
-        if (this._mainDeck.length <= 0) return;
 
-        this._isAnimating = true;
+        if (this._mainDeck.length <= 0)
+        {
+            if(this._moveInterval)
+            {
+                clearInterval(this._moveInterval);
+                this._moveInterval = null;
+            }
+        }
+
         const card = this._mainDeck.pop()!;
 
         // Ensure the moving card renders on top
         this._container.setChildIndex(card, this._container.children.length - 1);
 
-        // Get current target position
-        const targetPos = this._targetPositions[this._currentTargetIndex];
+        const targetIndex = this._currentTargetIndex;
+        const targetPos = this._targetPositions[targetIndex];
+
+        // Move to next stack index for the NEXT card immediately (Circular round-robin)
+        this._currentTargetIndex = (this._currentTargetIndex + 1) % this._targetPositions.length;
 
         card.animateTo(
             this.getRandomPos(targetPos.x),
@@ -93,16 +103,10 @@ export default class CardStackManager {
             () => {
                 if (!this._container || !this._targetStacks) return;
 
-                const currentStack = this._targetStacks[this._currentTargetIndex];
+                const currentStack = this._targetStacks[targetIndex];
                 if (!currentStack) return;
 
-                // Add to the specific target stack array
                 currentStack.push(card);
-
-                // Move to next stack index for the next card (Circular round-robin)
-                this._currentTargetIndex = (this._currentTargetIndex + 1) % this._targetPositions.length;
-
-                this._isAnimating = false;
             }
         );
     }
