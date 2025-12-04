@@ -26,21 +26,21 @@ export default class MainMenuScene extends Scene {
         const buttonStyle = {
             width: 300,
             height: 70,
-            fillColor: 0x333333,
-            fillAlpha: 0.8,
+            fillColor: 0xF5842D,
+            fillAlpha: 1,
             cornerRadius: 10
         };
 
         const buttonColors = {
-            normal: 0x333333,
-            hover: 0x555555,
-            pressed: 0x222222,
-            disabled: 0x666666
+            normal: 0xf5842d,
+            hover: 0xf7a05d,
+            pressed: 0xe27a2b,
+            disabled: 0xf5842d
         };
 
         const textStyle = {
             fontFamily: 'PoppinsBold',
-            fontSize: 24,
+            fontSize: 28,
             fill: 0xffffff
         };
 
