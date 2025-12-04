@@ -26,6 +26,7 @@ export class Button extends PIXI.Graphics {
     protected _enabled: boolean = true;
     protected _style: ButtonStyle;
     protected _colors: ButtonColors;
+    protected _icon: PIXI.Sprite | null = null;
 
     constructor(
         posX: number,
@@ -33,7 +34,8 @@ export class Button extends PIXI.Graphics {
         style: ButtonStyle,
         colors: ButtonColors,
         callback?: () => void,
-        parent?: PIXI.Container
+        parent?: PIXI.Container,
+        texturePath?: string | PIXI.Texture
     ) {
         super();
 
@@ -46,9 +48,20 @@ export class Button extends PIXI.Graphics {
         this.cursor = 'pointer';
 
         this.draw();
+
+        if (texturePath) {
+            this.addIcon(typeof texturePath === 'string' ? PIXI.Texture.from(texturePath) : texturePath);
+        }
+
         this.initializeEvents();
 
         if (parent) parent.addChild(this);
+    }
+
+    protected addIcon(texture: PIXI.Texture): void {
+        this._icon = new PIXI.Sprite(texture);
+        this._icon.anchor.set(0.5);
+        this.addChild(this._icon);
     }
 
     protected draw(): void {
@@ -125,6 +138,7 @@ export class Button extends PIXI.Graphics {
         this.off('pointerup', this.onPointerUp, this);
         this.off('pointerover', this.onPointerOver, this);
         this.off('pointerout', this.onPointerOut, this);
+        this._icon?.destroy();
         super.destroy();
     }
 }
