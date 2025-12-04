@@ -65,6 +65,8 @@ export default class CardStackManager {
     }
 
     private startCardMovement(): void {
+        if (this._moveInterval) clearInterval(this._moveInterval);
+
         this._moveInterval = setInterval(() => {
             this.moveTopCard();
         }, this.CARD_ANIMATION_START_DELAY);
@@ -89,8 +91,13 @@ export default class CardStackManager {
             this.getRandomRotation(),
             this.CARD_ANIMATION_DURATION,
             () => {
+                if (!this._container || !this._targetStacks) return;
+
+                const currentStack = this._targetStacks[this._currentTargetIndex];
+                if (!currentStack) return;
+
                 // Add to the specific target stack array
-                this._targetStacks[this._currentTargetIndex].push(card);
+                currentStack.push(card);
 
                 // Move to next stack index for the next card (Circular round-robin)
                 this._currentTargetIndex = (this._currentTargetIndex + 1) % this._targetPositions.length;

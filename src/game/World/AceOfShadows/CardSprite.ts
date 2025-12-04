@@ -3,8 +3,6 @@ import gsap from 'gsap';
 import * as PIXI from 'pixi.js';
 
 export default class CardSprite extends Sprite {
-    // Tween reference is no longer needed with gsap.killTweensOf(this)
-
     constructor(texture: PIXI.Texture, x: number = 0, y: number = 0) {
         super(x, y,1,1, texture);
         this.anchor.set(0.5);

@@ -9,6 +9,8 @@ export default class AceOfShadowsScene extends Scene {
     private readonly STACK_COUNT = 3;
     private readonly CIRCLE_RADIUS = 250;
 
+    private readonly STACKED_CARD_AMOUNT = 144;
+
     constructor() {
         super();
     }
@@ -22,6 +24,9 @@ export default class AceOfShadowsScene extends Scene {
     }
 
     private setupCards(): void {
+
+        this.removeChildren();
+
         const cardTexture = PIXI.Texture.from(ENGINE.resources.getItemPath('gameCard'));
 
         const targetPositions = this.calculateStackPositions(this.STACK_COUNT);
@@ -32,7 +37,7 @@ export default class AceOfShadowsScene extends Scene {
             targetPositions
         );
 
-        this._cardStackManager.initialize(144);
+        this._cardStackManager.initialize(this.STACKED_CARD_AMOUNT);
     }
 
     private calculateStackPositions(count: number): { x: number, y: number }[] {
@@ -72,6 +77,8 @@ export default class AceOfShadowsScene extends Scene {
     private cleanup(): void {
         this._cardStackManager?.destroy();
         this._cardStackManager = null;
+
+        this.removeChildren();
     }
 
     public update(): void {
