@@ -3,8 +3,8 @@ import gsap from 'gsap';
 import * as PIXI from 'pixi.js';
 
 export default class CardSprite extends Sprite {
-    constructor(texture: PIXI.Texture, x: number = 0, y: number = 0) {
-        super(x, y,1,1, texture);
+    constructor(texture: PIXI.Texture, x: number = 0, y: number = 0, scaleX: number = 1, scaleY: number = 1) {
+        super(x, y,scaleX,scaleY, texture);
         this.anchor.set(0.5);
     }
 

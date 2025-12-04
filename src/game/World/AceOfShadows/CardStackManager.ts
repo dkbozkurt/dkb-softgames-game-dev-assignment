@@ -58,11 +58,12 @@ export default class CardStackManager {
             const card = new CardSprite(
                 this._cardTexture,
                 this.getRandomPos(0),
-                this.getRandomPos(0)
+                this.getRandomPos(0),
+                this.CARD_SCALE,
+                this.CARD_SCALE
             );
 
             card.rotation = this.getRandomRotation();
-            card.scale.set(this.CARD_SCALE);
 
             card.zIndex = this.Z_INDEX_DECK + i;
 
