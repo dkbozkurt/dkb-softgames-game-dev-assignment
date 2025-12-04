@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import * as TWEEN from '@tweenjs/tween.js';
 import { Singleton } from '../engine/Components/Singleton';
 import AudioManager from './Core/AudioManager';
 import TestGameObject from './World/TestGameObject';
@@ -100,8 +101,10 @@ export default class GAME extends Singleton {
     }
 
     public update(): void {
+        TWEEN.update();
         this._fpsCounter?.update();
         this._testGameObject?.update();
+        this._sceneManager.update();
     }
 
     public fixedUpdate(): void {}

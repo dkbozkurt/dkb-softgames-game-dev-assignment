@@ -1,32 +1,63 @@
 import { Scene } from './Scene';
-import { Text } from '../../engine/Components/Text';
+import CardStackManager from '../World/AceOfShadows/CardStackManager';
+import * as PIXI from 'pixi.js';
+import ENGINE from '../../engine/Engine';
 
 export default class AceOfShadowsScene extends Scene {
-    private _titleText!: Text;
+    private _cardStackManager: CardStackManager | null = null;
 
     constructor() {
         super();
-        this.setupUI();
     }
 
-    private setupUI(): void {
-        this._titleText = new Text(
-            0,
-            0,
-            'Ace of Shadows - Coming Soon',
-            { fontFamily: 'PoppinsBold', fontSize: 36, fill: 0xffffff },
-            this
+    protected onShow(): void {
+        this.setupCards();
+    }
+
+    protected onHide(): void {
+        this.cleanup();
+    }
+
+    private setupCards(): void {
+        const cardTexture = PIXI.Texture.from(ENGINE.resources.getItemPath('gameCard'));
+
+        const leftStackConfig = {
+            x: -250,
+            y: -200,
+            offsetX: 1,
+            offsetY: 2
+        };
+
+        const rightStackConfig = {
+            x: 150,
+            y: -200,
+            offsetX: 1,
+            offsetY: 2
+        };
+
+        this._cardStackManager = new CardStackManager(
+            this,
+            cardTexture,
+            leftStackConfig,
+            rightStackConfig
         );
+
+        this._cardStackManager.initialize(144);
     }
 
-    protected onShow(): void {}
+    private cleanup(): void {
+        this._cardStackManager?.destroy();
+        this._cardStackManager = null;
+    }
 
-    protected onHide(): void {}
-
-    public update(): void {}
+    public update(): void {
+        if (this._isActive) {
+            this._cardStackManager?.update();
+        }
+    }
 
     public destroy(): void {
-        this._titleText.destroy();
+        this.cleanup();
         super.destroy({ children: true });
     }
 }
