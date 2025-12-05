@@ -29,7 +29,10 @@ export default class MagicWordsScene extends Scene {
         });
     }
 
-    protected onHide(): void { }
+    protected onHide(): void {
+        // Clean up the dialogue container immediately when leaving the scene
+        this._dialogueContainer.reset();
+    }
 
     public update(): void { }
 

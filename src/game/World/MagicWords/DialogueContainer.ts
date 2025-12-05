@@ -19,35 +19,41 @@ export default class DialogueContainer extends Container {
     private _avatarMap: Map<string, AvatarData> = new Map();
     private _displayTimeout: any = null;
 
-    private readonly CONTENT_WIDTH = 500; // Total width available
+    private readonly CONTENT_WIDTH = 500; // Updated to 500 as requested
     private readonly AVATAR_SIZE = 100;
     private readonly PADDING = 20;
-    
+
     private readonly LINE_HEIGHT = 40;
     private readonly FONT_SIZE = 24;
 
     constructor() {
         super();
-        
+
         this._contentContainer = new PIXI.Container();
         this.addChild(this._contentContainer);
     }
 
     public printData(data: any): void {
-        this.stopSequence();
+        this.reset(); // Use reset to ensure clean state
         this._emojiMap.clear();
         this._avatarMap.clear();
         this._dialogueQueue = [];
-        
+
         console.log('[DialogueContainer] Raw Data:', data);
 
         this.parseData(data);
-        
+
         if (this._dialogueQueue.length > 0) {
-            this.showNextDialogue();
+            this.showConversationStart();
         } else {
             this.renderSimpleMessage("No dialogue found.");
         }
+    }
+
+    // Call this from your Scene's onHide() to clean up immediately
+    public reset(): void {
+        this.stopSequence();
+        this._contentContainer.removeChildren();
     }
 
     private parseData(data: any): void {
@@ -91,12 +97,54 @@ export default class DialogueContainer extends Container {
                     });
                 }
             });
-        } 
+        }
+    }
+
+    private showConversationStart(): void {
+        this._contentContainer.removeChildren();
+
+        const startLabel = new PIXI.Text("... Conversation starting...", {
+            fontFamily: 'PoppinsBold',
+            fontSize: 24,
+            fill: 0xAAAAAA,
+            fontStyle: 'italic',
+            align: 'center'
+        });
+
+        startLabel.anchor.set(0.5);
+        startLabel.position.set(this.CONTENT_WIDTH / 2, 0);
+
+        this._contentContainer.addChild(startLabel);
+
+        this.updatePivotAndCenter();
+
+        this._displayTimeout = setTimeout(() => {
+            this.showNextDialogue();
+        }, 2000);
+    }
+
+    private showConversationEnd(): void {
+        this._contentContainer.removeChildren();
+
+        const endLabel = new PIXI.Text("... Conversation ended...", {
+            fontFamily: 'PoppinsBold',
+            fontSize: 24,
+            fill: 0xAAAAAA,
+            fontStyle: 'italic',
+            align: 'center'
+        });
+
+        endLabel.anchor.set(0.5);
+        endLabel.position.set(this.CONTENT_WIDTH / 2, 0);
+
+        this._contentContainer.addChild(endLabel);
+
+        this.updatePivotAndCenter();
     }
 
     private showNextDialogue(): void {
         if (this._dialogueQueue.length === 0) {
-            this._contentContainer.removeChildren();
+            this.showConversationEnd();
             return;
         }
 
@@ -105,7 +153,7 @@ export default class DialogueContainer extends Container {
 
         this._displayTimeout = setTimeout(() => {
             this.showNextDialogue();
-        }, 3000); // Increased to 3s to give time to read
+        }, 3000);
     }
 
     private renderDialogueItem(item: DialogueItem): void {
@@ -113,7 +161,7 @@ export default class DialogueContainer extends Container {
 
         const avatarData = this._avatarMap.get(item.name);
         let alignment: 'left' | 'right' | 'center' = 'center';
-        
+
         if (avatarData) {
             alignment = avatarData.position === 'right' ? 'right' : 'left';
         }
@@ -124,7 +172,6 @@ export default class DialogueContainer extends Container {
         }
 
         // 2. Render Text Content
-        // Calculate dynamic max width and start X
         let textMaxWidth = this.CONTENT_WIDTH;
         let textStartX = 0;
 
@@ -135,60 +182,65 @@ export default class DialogueContainer extends Container {
             textStartX = 0;
             textMaxWidth = this.CONTENT_WIDTH - this.AVATAR_SIZE - this.PADDING;
         } else {
-            // Center: Use full width, start at 0
+            // Center: Use full width
             textStartX = 0;
             textMaxWidth = this.CONTENT_WIDTH;
         }
-        
+
         const textBlockHeight = this.renderRichText(
-            item.text, 
-            textStartX, 
-            0, 
+            item.text,
+            textStartX,
+            0,
             alignment,
             textMaxWidth
         );
 
-        // 3. Render Name Label (Below text)
+        // 3. Render Name Label
         const nameLabel = new PIXI.Text(item.name, {
             fontFamily: 'PoppinsBold',
             fontSize: 18,
-            fill: 0xAAAAAA, // Grey color for name
-            fontStyle: 'italic'
+            fill: 0xAAAAAA,
+            fontStyle: 'italic',
+            align: alignment === 'right' ? 'right' : (alignment === 'center' ? 'center' : 'left')
         });
 
-        // Position name label
-        nameLabel.y = textBlockHeight + 5; 
-        
+        nameLabel.y = textBlockHeight + 5;
+
         if (alignment === 'right') {
+            // Right align relative to text block end
             nameLabel.x = textMaxWidth - nameLabel.width;
         } else if (alignment === 'left') {
+            // Left align relative to text block start
             nameLabel.x = textStartX;
         } else {
             // Center alignment
             nameLabel.x = (this.CONTENT_WIDTH - nameLabel.width) / 2;
         }
-        
+
         this._contentContainer.addChild(nameLabel);
 
-        // Center the whole container on screen
+        this.updatePivotAndCenter();
+    }
+
+    private updatePivotAndCenter(): void {
+        // We calculate bounds to find the visual center of content
         const bounds = this._contentContainer.getLocalBounds();
-        this._contentContainer.pivot.set(bounds.width / 2, bounds.height / 2);
+        this._contentContainer.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
         this._contentContainer.position.set(0, 0);
     }
 
     /**
      * Renders text with support for emojis and alignment. 
-     * Returns the total height of the text block.
      */
     private renderRichText(text: string, startX: number, startY: number, align: 'left' | 'right' | 'center', maxWidth: number): number {
         const tokens = this.tokenizeText(text);
         const lines: { width: number, items: PIXI.DisplayObject[] }[] = [];
-        
+
         let currentLineItems: PIXI.DisplayObject[] = [];
         let currentLineWidth = 0;
 
         // --- Pass 1: Measure and Group into Lines ---
-        
+
         tokens.forEach(token => {
             let displayObject: PIXI.DisplayObject | null = null;
 
@@ -198,20 +250,17 @@ export default class DialogueContainer extends Container {
                     fontSize: this.FONT_SIZE,
                     fill: 0xffffff
                 };
-                if (token.isBold) style.fontWeight = 'bold'; // Bold style, white color
+                if (token.isBold) style.fontWeight = 'bold';
 
                 displayObject = new PIXI.Text(token.content, style);
-            } 
+            }
             else if (token.type === 'emoji') {
                 displayObject = this.createEmojiSprite(token.content);
             }
 
             if (displayObject) {
-                // Determine width of this item
-                // Note: For sprites that are loading, we assume a fixed size
                 const itemWidth = (displayObject instanceof PIXI.Text) ? displayObject.width : (this.FONT_SIZE + 5);
 
-                // Check if we need to wrap
                 if (currentLineWidth + itemWidth > maxWidth && currentLineWidth > 0) {
                     lines.push({ width: currentLineWidth, items: currentLineItems });
                     currentLineItems = [];
@@ -223,7 +272,6 @@ export default class DialogueContainer extends Container {
             }
         });
 
-        // Push the last line
         if (currentLineItems.length > 0) {
             lines.push({ width: currentLineWidth, items: currentLineItems });
         }
@@ -235,7 +283,7 @@ export default class DialogueContainer extends Container {
         lines.forEach(line => {
             let currentX = startX;
 
-            // Apply Alignment Offset
+            // Apply Alignment Offset for the LINE
             if (align === 'right') {
                 currentX = (startX + maxWidth) - line.width;
             } else if (align === 'center') {
@@ -245,8 +293,7 @@ export default class DialogueContainer extends Container {
             line.items.forEach(item => {
                 item.position.set(currentX, currentY);
                 this._contentContainer.addChild(item);
-                
-                // Advance X
+
                 const itemWidth = (item instanceof PIXI.Text) ? item.width : (this.FONT_SIZE + 5);
                 currentX += itemWidth;
             });
@@ -254,13 +301,12 @@ export default class DialogueContainer extends Container {
             currentY += this.LINE_HEIGHT;
         });
 
-        return currentY; // Return total height
+        return currentY;
     }
 
     private tokenizeText(text: string): { type: 'text' | 'emoji', content: string, isBold?: boolean }[] {
         const result: { type: 'text' | 'emoji', content: string, isBold?: boolean }[] = [];
-        
-        // 1. Split by Emojis {key}
+
         const parts = text.split(/({[^}]+})/g);
 
         parts.forEach(part => {
@@ -270,17 +316,16 @@ export default class DialogueContainer extends Container {
             if (emojiMatch) {
                 const key = emojiMatch[1].trim();
                 const url = this._emojiMap.get(key);
-                
+
                 if (url) {
                     result.push({ type: 'emoji', content: url });
                 } else {
-                    // Missing emoji, ignore it (do not add to result)
-                    console.warn(`[DialogueContainer] Key not found in map: ${key}`);
+                    // Do nothing for missing emoji (skip it)
+                    // console.warn(`[DialogueContainer] Key not found in map: ${key}`);
                 }
             } else {
-                // Text Part - Split by Bold *text*
                 const boldParts = part.split(/(\*[^*]+\*)/g);
-                
+
                 boldParts.forEach(boldPart => {
                     if (!boldPart) return;
 
@@ -292,7 +337,6 @@ export default class DialogueContainer extends Container {
                         content = content.substring(1, content.length - 1);
                     }
 
-                    // Split into words for wrapping
                     const words = content.split(/(\s+)/);
                     words.forEach(word => {
                         result.push({ type: 'text', content: word, isBold });
@@ -308,13 +352,12 @@ export default class DialogueContainer extends Container {
         const container = new PIXI.Container();
         const size = this.FONT_SIZE + 5;
 
-        // Load Texture
         const texture = PIXI.Texture.from(url, {
             resourceOptions: { crossorigin: 'anonymous' }
         });
 
         const sprite = new PIXI.Sprite(texture);
-        sprite.visible = false; 
+        sprite.visible = false;
 
         const onLoaded = () => {
             sprite.width = size;
@@ -325,26 +368,21 @@ export default class DialogueContainer extends Container {
         if (texture.valid) onLoaded();
         else texture.once('update', onLoaded);
 
-        // Adjust anchor/pivot to align with text baseline
         sprite.anchor.set(0, 0.15);
         container.addChild(sprite);
 
-        // NOTE: We return a container, but we must manually handle layout width in renderRichText
-        // because sprite.width is 0 until loaded.
         return container;
     }
 
     private createAvatarSprite(url: string, isRight: boolean): void {
         const container = new PIXI.Container();
-        
-        // Background/Border for Avatar
+
         const bg = new PIXI.Graphics();
         bg.beginFill(0xFFFFFF, 0.1);
         bg.drawRoundedRect(0, 0, this.AVATAR_SIZE, this.AVATAR_SIZE, 10);
         bg.endFill();
         container.addChild(bg);
 
-        // Avatar Image
         const texture = PIXI.Texture.from(url, {
             resourceOptions: { crossorigin: 'anonymous' }
         });
@@ -362,7 +400,6 @@ export default class DialogueContainer extends Container {
 
         container.addChild(sprite);
 
-        // Position Avatar
         const xPos = isRight ? (this.CONTENT_WIDTH - this.AVATAR_SIZE) : 0;
         container.position.set(xPos, 0);
 
