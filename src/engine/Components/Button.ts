@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import AudioManager from '../../game/Core/AudioManager';
 
 export type ButtonState = 'normal' | 'hover' | 'pressed' | 'disabled';
 
@@ -109,6 +110,7 @@ export class Button extends PIXI.Graphics {
     protected onPointerUp(): void {
         if (!this._enabled) return;
         this.setState('hover');
+        AudioManager.instance().playSound('ButtonClick', 0.2);
         this._callback?.();
     }
 

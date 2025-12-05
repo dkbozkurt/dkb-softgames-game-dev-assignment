@@ -24,7 +24,7 @@ export default class CardSprite extends PIXI.Sprite {
             x: targetX,
             y: targetY,
             duration: durationSec,
-            ease: 'power2.inOut',
+            ease: 'power3.out',
             onComplete
         });
 

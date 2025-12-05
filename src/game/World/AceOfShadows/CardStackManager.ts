@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import CardDeck from './CardDeck';
+import AudioManager from '../../Core/AudioManager';
 
 type Point = { x: number; y: number };
 
@@ -87,6 +88,8 @@ export default class CardStackManager {
         const targetDeck = this._targetDecks[targetIndex];
 
         this._currentTargetIndex = (this._currentTargetIndex + 1) % this._targetPositions.length;
+
+        AudioManager.instance().playSound('CardMove', 0.7);
 
         card.animateTo(
             targetDeck.randomizePosition(targetPos.x),

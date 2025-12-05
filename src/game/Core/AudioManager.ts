@@ -10,6 +10,7 @@ export default class AudioManager extends Singleton {
 
     private _isMuted: boolean = false;
     private _isActive: boolean = false;
+    private _loopingAudios: Set<game.AudioName> = new Set();
 
     constructor() {
         super();
@@ -18,23 +19,37 @@ export default class AudioManager extends Singleton {
     }
 
     public playSound(sound: game.AudioName, volume: number = 1, loop: boolean = false): void {
-        if (!this._isActive) return;
+        if (!this._isActive || !this.audios[sound]) return;
 
-        this.audios[sound].volume = volume;
-        this.audios[sound].currentTime = 0;
-        this.audios[sound].loop = loop;
-        this.audios[sound].play();
+        const audio = this.audios[sound];
+        audio.volume = this._isMuted ? 0 : volume;
+        audio.currentTime = 0;
+        audio.loop = loop;
+        audio.play().catch(() => { });
+
+        if (loop) {
+            this._loopingAudios.add(sound);
+        }
     }
 
     public stopSound(sound: game.AudioName): void {
+        if (!this.audios[sound]) return;
+
         this.audios[sound].pause();
         this.audios[sound].currentTime = 0;
+        this._loopingAudios.delete(sound);
+    }
+
+    public stopAllLooping(): void {
+        this._loopingAudios.forEach(sound => this.stopSound(sound));
+        this._loopingAudios.clear();
     }
 
     public setActive(status: boolean): void {
         this._isActive = status;
-        this.unMute();
-        this.playSound('Background', 0.5, true);
+        if (status) {
+            this.unMute();
+        }
     }
 
     public toggleMute(): void {
@@ -42,29 +57,46 @@ export default class AudioManager extends Singleton {
     }
 
     public mute(): void {
-        this.setMuteStatus(true);
+        this._isMuted = true;
+        this.updateAllVolumes();
     }
 
     public unMute(): void {
-        this.setMuteStatus(false);
+        this._isMuted = false;
+        this.updateAllVolumes();
     }
 
-    public get isMuted(): boolean { return this._isMuted; }
+    public get isMuted(): boolean {
+        return this._isMuted;
+    }
+
+    public get isActive(): boolean {
+        return this._isActive;
+    }
 
     private setAudios(): void {
         this.audios = {
-            Background: ENGINE.resources.items.backgroundAudio as HTMLAudioElement
+            ButtonClick: ENGINE.resources.items.buttonClickAudio as HTMLAudioElement,
+            CardMove: ENGINE.resources.items.cardMoveAudio as HTMLAudioElement,
+            Message: ENGINE.resources.items.messageAudio as HTMLAudioElement,
+            Fire: ENGINE.resources.items.fireAudio as HTMLAudioElement
         };
+
+        this._isActive = true;
     }
 
-    private setMuteStatus(status: boolean): void {
-        this._isMuted = status;
+    private updateAllVolumes(): void {
+        if (!this.audios) return;
+
         for (const audio of Object.values(this.audios)) {
-            audio.muted = this._isMuted;
+            if (audio) {
+                audio.muted = this._isMuted;
+            }
         }
     }
 
     public destroy(): void {
+        this.stopAllLooping();
         EventSystem.off('ready', this.setAudios);
         super.destroy();
     }

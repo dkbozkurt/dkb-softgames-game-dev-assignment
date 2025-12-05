@@ -4,6 +4,7 @@ import ENGINE from '../../../engine/Engine';
 import FireGlow from './FireGlow';
 import FireParticleFactory, { FireParticle } from './FireParticleFactory';
 import SpriteSheetLoader from './SpriteSheetLoader';
+import AudioManager from '../../Core/AudioManager';
 
 export default class FireParticleSystem extends Container {
     private _particleContainer: PIXI.ParticleContainer;
@@ -41,11 +42,13 @@ export default class FireParticleSystem extends Container {
         this.createTorch();
         this.loadTextures();
         this._glow.startPulse();
+        AudioManager.instance().playSound('Fire', 0.3, true);
     }
 
     public stop(): void {
         this.visible = false;
         this._glow.stopPulse();
+        AudioManager.instance().stopSound('Fire');
     }
 
     private createTorch(): void {

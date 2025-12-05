@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { DialogueItem } from './DialogueParser';
 import DialogueBubbleFactory from './DialogueBubbleFactory';
+import AudioManager from '../../Core/AudioManager';
 
 type SequencerCallbacks = {
     onBubbleCreated: (bubble: PIXI.Container) => void;
@@ -63,6 +64,9 @@ export default class DialogueSequencer {
 
         const item = this._queue.shift()!;
         const bubble = this._bubbleFactory.create(item);
+
+        AudioManager.instance().playSound('Message', 0.4);
+
         this._callbacks.onBubbleCreated(bubble);
 
         this._timeout = setTimeout(() => this.showNext(), this._intervalMs);
