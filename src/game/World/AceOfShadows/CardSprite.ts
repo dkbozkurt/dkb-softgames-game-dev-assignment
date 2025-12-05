@@ -1,11 +1,12 @@
-import { Sprite } from '../../../engine/Components/Sprite';
-import gsap from 'gsap';
 import * as PIXI from 'pixi.js';
+import gsap from 'gsap';
 
-export default class CardSprite extends Sprite {
-    constructor(texture: PIXI.Texture, x: number = 0, y: number = 0, scaleX: number = 1, scaleY: number = 1) {
-        super(x, y,scaleX,scaleY, texture);
+export default class CardSprite extends PIXI.Sprite {
+    constructor(texture: PIXI.Texture, x: number = 0, y: number = 0, scale: number = 1) {
+        super(texture);
         this.anchor.set(0.5);
+        this.position.set(x, y);
+        this.scale.set(scale);
     }
 
     public animateTo(
@@ -15,7 +16,7 @@ export default class CardSprite extends Sprite {
         duration: number,
         onComplete?: () => void
     ): void {
-        this.stopAnimation();
+        gsap.killTweensOf(this);
 
         const durationSec = duration / 1000;
 
@@ -24,9 +25,7 @@ export default class CardSprite extends Sprite {
             y: targetY,
             duration: durationSec,
             ease: 'power2.inOut',
-            onComplete: () => {
-                onComplete?.();
-            }
+            onComplete
         });
 
         gsap.to(this, {
@@ -36,15 +35,8 @@ export default class CardSprite extends Sprite {
         });
     }
 
-    public update(): void {
-    }
-
-    public stopAnimation(): void {
-        gsap.killTweensOf(this);
-    }
-
     public destroy(): void {
-        this.stopAnimation();
+        gsap.killTweensOf(this);
         super.destroy();
     }
 }

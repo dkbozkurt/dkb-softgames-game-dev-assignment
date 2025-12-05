@@ -1,151 +1,116 @@
 import * as PIXI from 'pixi.js';
-import CardSprite from './CardSprite';
-import Utilities from '../../../engine/Utils/Utilities';
+import CardDeck from './CardDeck';
 
-type Point = {
-    x: number;
-    y: number;
+type Point = { x: number; y: number };
+
+type CardStackConfig = {
+    animationDelay: number;
+    animationDuration: number;
+    positionOffset: number;
+    rotationOffset: number;
+    cardScale: number;
+};
+
+const DEFAULT_CONFIG: CardStackConfig = {
+    animationDelay: 1000,
+    animationDuration: 2000,
+    positionOffset: 15,
+    rotationOffset: 0.3,
+    cardScale: 0.65
 };
 
 export default class CardStackManager {
-    private _mainDeck: CardSprite[] = [];
-    private _targetStacks: CardSprite[][] = [];
+    private _sourceDeck: CardDeck;
+    private _targetDecks: CardDeck[] = [];
     private _container: PIXI.Container;
-
     private _targetPositions: Point[];
-    private _cardTexture: PIXI.Texture;
+    private _config: CardStackConfig;
 
-    private _moveInterval: NodeJS.Timeout | null = null;
+    private _moveInterval: ReturnType<typeof setInterval> | null = null;
     private _currentTargetIndex: number = 0;
 
-    // Configuration for randomness
-    private readonly POS_OFFSET = 15; // Pixels variance
-    private readonly ROT_OFFSET = 0.3; // Radians variance
-    private readonly CARD_SCALE = 0.65; // Increased scale
-
-    private readonly CARD_ANIMATION_START_DELAY = 1000;
-    private readonly CARD_ANIMATION_DURATION = 2000;
-
-    private readonly Z_INDEX_DECK = 10;
+    private readonly Z_INDEX_SOURCE = 10;
     private readonly Z_INDEX_TARGET = 50;
     private readonly Z_INDEX_MOVING = 100;
 
     constructor(
         container: PIXI.Container,
         cardTexture: PIXI.Texture,
-        targetPositions: Point[]
+        targetPositions: Point[],
+        config: Partial<CardStackConfig> = {}
     ) {
         this._container = container;
         this._container.sortableChildren = true;
-
-        this._cardTexture = cardTexture;
         this._targetPositions = targetPositions;
+        this._config = { ...DEFAULT_CONFIG, ...config };
 
-        // Initialize arrays for each target stack
-        this._targetPositions.forEach(() => {
-            this._targetStacks.push([]);
+        const deckConfig = {
+            positionOffset: this._config.positionOffset,
+            rotationOffset: this._config.rotationOffset,
+            cardScale: this._config.cardScale,
+            baseZIndex: this.Z_INDEX_SOURCE
+        };
+
+        this._sourceDeck = new CardDeck(container, deckConfig);
+
+        targetPositions.forEach(() => {
+            this._targetDecks.push(new CardDeck(container, {
+                ...deckConfig,
+                baseZIndex: this.Z_INDEX_TARGET
+            }));
         });
     }
 
-    public initialize(totalCards: number): void {
-        this.createMainDeck(totalCards);
-        this.startCardMovement();
+    public initialize(totalCards: number, texture: PIXI.Texture): void {
+        this._sourceDeck.createCards(totalCards, texture, 0, 0);
+        this.startMovement();
     }
 
-    private createMainDeck(totalCards: number): void {
-        // Create cards at the center (0,0)
-        for (let i = 0; i < totalCards; i++) {
-            const card = new CardSprite(
-                this._cardTexture,
-                this.getRandomPos(0),
-                this.getRandomPos(0),
-                this.CARD_SCALE,
-                this.CARD_SCALE
-            );
-
-            card.rotation = this.getRandomRotation();
-
-            card.zIndex = this.Z_INDEX_DECK + i;
-
-            this._container.addChild(card);
-            this._mainDeck.push(card);
-        }
-    }
-
-    private startCardMovement(): void {
+    private startMovement(): void {
         if (this._moveInterval) clearInterval(this._moveInterval);
 
         this.moveTopCard();
-
-        this._moveInterval = setInterval(() => {
-            this.moveTopCard();
-        }, this.CARD_ANIMATION_START_DELAY);
+        this._moveInterval = setInterval(() => this.moveTopCard(), this._config.animationDelay);
     }
 
     private moveTopCard(): void {
-
-        if (this._mainDeck.length <= 0)
-        {
-            if(this._moveInterval)
-            {
-                clearInterval(this._moveInterval);
-                this._moveInterval = null;
-            }
+        if (this._sourceDeck.isEmpty) {
+            this.stopMovement();
             return;
         }
 
-        const card = this._mainDeck.pop()!;
-        card.zIndex = this.Z_INDEX_MOVING + this._mainDeck.length;
+        const card = this._sourceDeck.popCard()!;
+        card.zIndex = this.Z_INDEX_MOVING + this._sourceDeck.count;
 
         const targetIndex = this._currentTargetIndex;
         const targetPos = this._targetPositions[targetIndex];
+        const targetDeck = this._targetDecks[targetIndex];
 
-        // Move to next stack index for the NEXT card immediately (Circular round-robin)
         this._currentTargetIndex = (this._currentTargetIndex + 1) % this._targetPositions.length;
 
         card.animateTo(
-            this.getRandomPos(targetPos.x),
-            this.getRandomPos(targetPos.y),
-            this.getRandomRotation(),
-            this.CARD_ANIMATION_DURATION,
+            targetDeck.randomizePosition(targetPos.x),
+            targetDeck.randomizePosition(targetPos.y),
+            targetDeck.randomizeRotation(),
+            this._config.animationDuration,
             () => {
-                if (!this._container || !this._targetStacks) return;
-
-                const currentStack = this._targetStacks[targetIndex];
-                if (!currentStack) return;
-
-                currentStack.push(card);
-                card.zIndex = this.Z_INDEX_TARGET + currentStack.length;
+                if (!this._container || !targetDeck) return;
+                targetDeck.pushCard(card, this.Z_INDEX_TARGET + targetDeck.count);
             }
         );
     }
 
-    private getRandomPos(base: number): number {
-        return base + Utilities.getRandomFloatingNumber(-this.POS_OFFSET, this.POS_OFFSET);
-    }
-
-    private getRandomRotation(): number {
-        return Utilities.getRandomFloatingNumber(-this.ROT_OFFSET, this.ROT_OFFSET);
-    }
-
-    public update(): void {
-
-    }
-
-    public destroy(): void {
+    private stopMovement(): void {
         if (this._moveInterval) {
             clearInterval(this._moveInterval);
             this._moveInterval = null;
         }
+    }
 
-        // Destroy main deck
-        this._mainDeck.forEach(card => card.destroy());
-        this._mainDeck = [];
-
-        // Destroy all target stacks
-        this._targetStacks.forEach(stack => {
-            stack.forEach(card => card.destroy());
-        });
-        this._targetStacks = [];
+    public destroy(): void {
+        this.stopMovement();
+        this._sourceDeck.destroy();
+        this._targetDecks.forEach(deck => deck.destroy());
+        this._targetDecks = [];
     }
 }

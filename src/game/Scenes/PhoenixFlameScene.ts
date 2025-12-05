@@ -1,16 +1,11 @@
 import { Scene } from './Scene';
-import { Text } from '../../engine/Components/Text';
 import FireParticleSystem from '../World/PhoenixFlame/FireParticleSystem';
 
 export default class PhoenixFlameScene extends Scene {
-    private _fireSystem!: FireParticleSystem;
+    private _fireSystem: FireParticleSystem;
 
     constructor() {
         super();
-        this.setupUI();
-    }
-
-    private setupUI(): void {
         this._fireSystem = new FireParticleSystem();
         this.addChild(this._fireSystem);
     }

@@ -22,7 +22,6 @@ export abstract class Scene extends Container {
 
     protected abstract onShow(): void;
     protected abstract onHide(): void;
-
     public abstract update(): void;
 
     public get isActive(): boolean {
