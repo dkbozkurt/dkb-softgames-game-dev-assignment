@@ -13,36 +13,36 @@ type DialogueItem = {
 };
 
 export default class DialogueContainer extends Container {
-    private _contentContainer: PIXI.Container;
     private _dialogueQueue: DialogueItem[] = [];
+    private _activeBubbles: PIXI.Container[] = []; // Stores the visual message bubbles
+    
     private _emojiMap: Map<string, string> = new Map();
     private _avatarMap: Map<string, AvatarData> = new Map();
     private _displayTimeout: any = null;
 
-    private readonly CONTENT_WIDTH = 500; // Updated to 500 as requested
+    private readonly CONTENT_WIDTH = 500;
     private readonly AVATAR_SIZE = 100;
     private readonly PADDING = 20;
-
+    private readonly BUBBLE_SPACING = 30; // Space between messages
+    
     private readonly LINE_HEIGHT = 40;
     private readonly FONT_SIZE = 24;
 
     constructor() {
         super();
-
-        this._contentContainer = new PIXI.Container();
-        this.addChild(this._contentContainer);
+        // No single _contentContainer anymore, we add bubbles directly to 'this'
     }
 
     public printData(data: any): void {
-        this.reset(); // Use reset to ensure clean state
+        this.reset();
         this._emojiMap.clear();
         this._avatarMap.clear();
         this._dialogueQueue = [];
-
+        
         console.log('[DialogueContainer] Raw Data:', data);
 
         this.parseData(data);
-
+        
         if (this._dialogueQueue.length > 0) {
             this.showConversationStart();
         } else {
@@ -50,10 +50,12 @@ export default class DialogueContainer extends Container {
         }
     }
 
-    // Call this from your Scene's onHide() to clean up immediately
     public reset(): void {
         this.stopSequence();
-        this._contentContainer.removeChildren();
+        // Destroy all active bubbles properly
+        this._activeBubbles.forEach(bubble => bubble.destroy({ children: true }));
+        this._activeBubbles = [];
+        this.removeChildren();
     }
 
     private parseData(data: any): void {
@@ -76,7 +78,7 @@ export default class DialogueContainer extends Container {
                     this._avatarMap.set(item.name, {
                         name: item.name,
                         url: item.url,
-                        position: item.position || 'left' // Default to left
+                        position: item.position || 'left'
                     });
                 }
             });
@@ -97,26 +99,12 @@ export default class DialogueContainer extends Container {
                     });
                 }
             });
-        }
+        } 
     }
 
     private showConversationStart(): void {
-        this._contentContainer.removeChildren();
-
-        const startLabel = new PIXI.Text("... Conversation starting...", {
-            fontFamily: 'PoppinsBold',
-            fontSize: 24,
-            fill: 0xAAAAAA,
-            fontStyle: 'italic',
-            align: 'center'
-        });
-
-        startLabel.anchor.set(0.5);
-        startLabel.position.set(this.CONTENT_WIDTH / 2, 0);
-
-        this._contentContainer.addChild(startLabel);
-
-        this.updatePivotAndCenter();
+        const startLabel = this.createSystemMessage("... Conversation starting ...");
+        this.addNewBubble(startLabel);
 
         this._displayTimeout = setTimeout(() => {
             this.showNextDialogue();
@@ -124,22 +112,8 @@ export default class DialogueContainer extends Container {
     }
 
     private showConversationEnd(): void {
-        this._contentContainer.removeChildren();
-
-        const endLabel = new PIXI.Text("... Conversation ended...", {
-            fontFamily: 'PoppinsBold',
-            fontSize: 24,
-            fill: 0xAAAAAA,
-            fontStyle: 'italic',
-            align: 'center'
-        });
-
-        endLabel.anchor.set(0.5);
-        endLabel.position.set(this.CONTENT_WIDTH / 2, 0);
-
-        this._contentContainer.addChild(endLabel);
-
-        this.updatePivotAndCenter();
+        const endLabel = this.createSystemMessage("... Conversation ended ...");
+        this.addNewBubble(endLabel);
     }
 
     private showNextDialogue(): void {
@@ -149,26 +123,76 @@ export default class DialogueContainer extends Container {
         }
 
         const item = this._dialogueQueue.shift()!;
-        this.renderDialogueItem(item);
+        
+        // Create the visual bubble for this dialogue item
+        const bubble = this.createDialogueBubble(item);
+        this.addNewBubble(bubble);
 
         this._displayTimeout = setTimeout(() => {
             this.showNextDialogue();
-        }, 3000);
+        }, 3000); 
     }
 
-    private renderDialogueItem(item: DialogueItem): void {
-        this._contentContainer.removeChildren();
+    /**
+     * Adds a new bubble to the scene, pushes old ones up, and fades them.
+     */
+    private addNewBubble(newBubble: PIXI.Container): void {
+        // 1. Add new bubble to the container
+        this.addChild(newBubble);
+
+        // Get the height of the new bubble to calculate shift
+        // Using getLocalBounds for accurate sizing of the new item
+        const bounds = newBubble.getLocalBounds();
+        const newBubbleHeight = bounds.height; 
+        
+        // We want the new bubble to appear at roughly y=0 (or slightly below center if preferred)
+        // Let's position it such that its visual center is at y=0 initially? 
+        // Or better, let's build from bottom up. Let's say y=200 is the "current line".
+        // For now, let's keep the new message at y=0 (center of screen effectively due to parent position).
+        newBubble.position.set(0, 0); 
+        // Ensure new bubble is opaque
+        newBubble.alpha = 1;
+
+        // 2. Shift existing bubbles UP
+        const shiftAmount = newBubbleHeight + this.BUBBLE_SPACING;
+
+        this._activeBubbles.forEach(bubble => {
+            // Move up
+            // Using gsap would be smoother, but direct set is fine for now
+            bubble.y -= shiftAmount;
+            
+            // Apply fade effect (messaging history style)
+            bubble.alpha = 0.5;
+        });
+
+        // 3. Add to tracking array
+        this._activeBubbles.push(newBubble);
+
+        // Optional: Prune very old messages if they go off screen to save memory
+        if (this._activeBubbles.length > 5) {
+            const oldBubble = this._activeBubbles.shift();
+            if (oldBubble) {
+                oldBubble.destroy({ children: true });
+            }
+        }
+    }
+
+    /**
+     * Creates a single self-contained Container for a dialogue entry.
+     */
+    private createDialogueBubble(item: DialogueItem): PIXI.Container {
+        const bubbleContainer = new PIXI.Container();
 
         const avatarData = this._avatarMap.get(item.name);
         let alignment: 'left' | 'right' | 'center' = 'center';
-
+        
         if (avatarData) {
             alignment = avatarData.position === 'right' ? 'right' : 'left';
         }
 
-        // 1. Render Avatar (Only if avatar data exists)
+        // 1. Render Avatar
         if (avatarData) {
-            this.createAvatarSprite(avatarData.url, alignment === 'right');
+            this.createAvatarSprite(bubbleContainer, avatarData.url, alignment === 'right');
         }
 
         // 2. Render Text Content
@@ -182,15 +206,15 @@ export default class DialogueContainer extends Container {
             textStartX = 0;
             textMaxWidth = this.CONTENT_WIDTH - this.AVATAR_SIZE - this.PADDING;
         } else {
-            // Center: Use full width
             textStartX = 0;
             textMaxWidth = this.CONTENT_WIDTH;
         }
-
+        
         const textBlockHeight = this.renderRichText(
-            item.text,
-            textStartX,
-            0,
+            bubbleContainer,
+            item.text, 
+            textStartX, 
+            0, 
             alignment,
             textMaxWidth
         );
@@ -204,43 +228,53 @@ export default class DialogueContainer extends Container {
             align: alignment === 'right' ? 'right' : (alignment === 'center' ? 'center' : 'left')
         });
 
-        nameLabel.y = textBlockHeight + 5;
-
+        nameLabel.y = textBlockHeight + 5; 
+        
         if (alignment === 'right') {
-            // Right align relative to text block end
             nameLabel.x = textMaxWidth - nameLabel.width;
         } else if (alignment === 'left') {
-            // Left align relative to text block start
             nameLabel.x = textStartX;
         } else {
-            // Center alignment
             nameLabel.x = (this.CONTENT_WIDTH - nameLabel.width) / 2;
         }
+        
+        bubbleContainer.addChild(nameLabel);
 
-        this._contentContainer.addChild(nameLabel);
+        // Center the content within the bubble container's coordinate system
+        const bounds = bubbleContainer.getLocalBounds();
+        bubbleContainer.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
 
-        this.updatePivotAndCenter();
+        return bubbleContainer;
     }
 
-    private updatePivotAndCenter(): void {
-        // We calculate bounds to find the visual center of content
-        const bounds = this._contentContainer.getLocalBounds();
-        this._contentContainer.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-        this._contentContainer.position.set(0, 0);
+    private createSystemMessage(text: string): PIXI.Container {
+        const container = new PIXI.Container();
+        const label = new PIXI.Text(text, {
+            fontFamily: 'PoppinsBold',
+            fontSize: 24,
+            fill: 0xAAAAAA,
+            fontStyle: 'italic',
+            align: 'center'
+        });
+        label.anchor.set(0.5);
+        label.position.set(this.CONTENT_WIDTH / 2, 0);
+        container.addChild(label);
+        
+        // Pivot center
+        const bounds = container.getLocalBounds();
+        container.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        
+        return container;
     }
 
-    /**
-     * Renders text with support for emojis and alignment. 
-     */
-    private renderRichText(text: string, startX: number, startY: number, align: 'left' | 'right' | 'center', maxWidth: number): number {
+    private renderRichText(targetContainer: PIXI.Container, text: string, startX: number, startY: number, align: 'left' | 'right' | 'center', maxWidth: number): number {
         const tokens = this.tokenizeText(text);
         const lines: { width: number, items: PIXI.DisplayObject[] }[] = [];
-
+        
         let currentLineItems: PIXI.DisplayObject[] = [];
         let currentLineWidth = 0;
 
-        // --- Pass 1: Measure and Group into Lines ---
-
+        // Pass 1: Measure
         tokens.forEach(token => {
             let displayObject: PIXI.DisplayObject | null = null;
 
@@ -250,10 +284,10 @@ export default class DialogueContainer extends Container {
                     fontSize: this.FONT_SIZE,
                     fill: 0xffffff
                 };
-                if (token.isBold) style.fontWeight = 'bold';
+                if (token.isBold) style.fontWeight = 'bold'; 
 
                 displayObject = new PIXI.Text(token.content, style);
-            }
+            } 
             else if (token.type === 'emoji') {
                 displayObject = this.createEmojiSprite(token.content);
             }
@@ -276,14 +310,12 @@ export default class DialogueContainer extends Container {
             lines.push({ width: currentLineWidth, items: currentLineItems });
         }
 
-        // --- Pass 2: Position and Add to Container ---
-
+        // Pass 2: Position
         let currentY = startY;
 
         lines.forEach(line => {
             let currentX = startX;
 
-            // Apply Alignment Offset for the LINE
             if (align === 'right') {
                 currentX = (startX + maxWidth) - line.width;
             } else if (align === 'center') {
@@ -292,8 +324,8 @@ export default class DialogueContainer extends Container {
 
             line.items.forEach(item => {
                 item.position.set(currentX, currentY);
-                this._contentContainer.addChild(item);
-
+                targetContainer.addChild(item);
+                
                 const itemWidth = (item instanceof PIXI.Text) ? item.width : (this.FONT_SIZE + 5);
                 currentX += itemWidth;
             });
@@ -306,7 +338,6 @@ export default class DialogueContainer extends Container {
 
     private tokenizeText(text: string): { type: 'text' | 'emoji', content: string, isBold?: boolean }[] {
         const result: { type: 'text' | 'emoji', content: string, isBold?: boolean }[] = [];
-
         const parts = text.split(/({[^}]+})/g);
 
         parts.forEach(part => {
@@ -316,27 +347,20 @@ export default class DialogueContainer extends Container {
             if (emojiMatch) {
                 const key = emojiMatch[1].trim();
                 const url = this._emojiMap.get(key);
-
                 if (url) {
                     result.push({ type: 'emoji', content: url });
-                } else {
-                    // Do nothing for missing emoji (skip it)
-                    // console.warn(`[DialogueContainer] Key not found in map: ${key}`);
-                }
+                } 
+                // else ignore missing
             } else {
                 const boldParts = part.split(/(\*[^*]+\*)/g);
-
                 boldParts.forEach(boldPart => {
                     if (!boldPart) return;
-
                     let isBold = false;
                     let content = boldPart;
-
                     if (content.startsWith('*') && content.endsWith('*') && content.length > 2) {
                         isBold = true;
                         content = content.substring(1, content.length - 1);
                     }
-
                     const words = content.split(/(\s+)/);
                     words.forEach(word => {
                         result.push({ type: 'text', content: word, isBold });
@@ -344,20 +368,15 @@ export default class DialogueContainer extends Container {
                 });
             }
         });
-
         return result;
     }
 
     private createEmojiSprite(url: string): PIXI.Container {
         const container = new PIXI.Container();
         const size = this.FONT_SIZE + 5;
-
-        const texture = PIXI.Texture.from(url, {
-            resourceOptions: { crossorigin: 'anonymous' }
-        });
-
+        const texture = PIXI.Texture.from(url, { resourceOptions: { crossorigin: 'anonymous' } });
         const sprite = new PIXI.Sprite(texture);
-        sprite.visible = false;
+        sprite.visible = false; 
 
         const onLoaded = () => {
             sprite.width = size;
@@ -370,22 +389,19 @@ export default class DialogueContainer extends Container {
 
         sprite.anchor.set(0, 0.15);
         container.addChild(sprite);
-
         return container;
     }
 
-    private createAvatarSprite(url: string, isRight: boolean): void {
+    private createAvatarSprite(parent: PIXI.Container, url: string, isRight: boolean): void {
         const container = new PIXI.Container();
-
+        
         const bg = new PIXI.Graphics();
         bg.beginFill(0xFFFFFF, 0.1);
         bg.drawRoundedRect(0, 0, this.AVATAR_SIZE, this.AVATAR_SIZE, 10);
         bg.endFill();
         container.addChild(bg);
 
-        const texture = PIXI.Texture.from(url, {
-            resourceOptions: { crossorigin: 'anonymous' }
-        });
+        const texture = PIXI.Texture.from(url, { resourceOptions: { crossorigin: 'anonymous' } });
         const sprite = new PIXI.Sprite(texture);
         sprite.visible = false;
 
@@ -403,11 +419,11 @@ export default class DialogueContainer extends Container {
         const xPos = isRight ? (this.CONTENT_WIDTH - this.AVATAR_SIZE) : 0;
         container.position.set(xPos, 0);
 
-        this._contentContainer.addChild(container);
+        parent.addChild(container);
     }
 
     private renderSimpleMessage(message: string): void {
-        this._contentContainer.removeChildren();
+        this.removeChildren();
         const text = new PIXI.Text(message, {
             fontFamily: 'PoppinsBold',
             fontSize: this.FONT_SIZE,
@@ -415,7 +431,7 @@ export default class DialogueContainer extends Container {
             align: 'center'
         });
         text.anchor.set(0.5);
-        this._contentContainer.addChild(text);
+        this.addChild(text);
     }
 
     private stopSequence(): void {
