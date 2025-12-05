@@ -1,8 +1,9 @@
 import { Scene } from './Scene';
 import { Text } from '../../engine/Components/Text';
+import FireParticleSystem from '../World/PhoenixFlame/FireParticleSystem';
 
 export default class PhoenixFlameScene extends Scene {
-    private _titleText!: Text;
+    private _fireSystem!: FireParticleSystem;
 
     constructor() {
         super();
@@ -10,23 +11,24 @@ export default class PhoenixFlameScene extends Scene {
     }
 
     private setupUI(): void {
-        this._titleText = new Text(
-            0,
-            0,
-            'Phoenix Flame - Coming Soon',
-            { fontFamily: 'PoppinsBold', fontSize: 36, fill: 0xffffff },
-            this
-        );
+        this._fireSystem = new FireParticleSystem();
+        this.addChild(this._fireSystem);
     }
 
-    protected onShow(): void {}
+    protected onShow(): void {
+        this._fireSystem.start();
+    }
 
-    protected onHide(): void {}
+    protected onHide(): void {
+        this._fireSystem.stop();
+    }
 
-    public update(): void {}
+    public update(): void {
+        this._fireSystem.update();
+    }
 
     public destroy(): void {
-        this._titleText.destroy();
+        this._fireSystem.destroy({ children: true });
         super.destroy({ children: true });
     }
 }
