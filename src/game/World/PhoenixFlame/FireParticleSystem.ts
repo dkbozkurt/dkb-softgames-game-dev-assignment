@@ -24,8 +24,6 @@ export default class FireParticleSystem extends Container {
         this._glow = new FireGlow();
         this.addChild(this._glow);
 
-        this.setupTorch();
-
         this._particleContainer = new PIXI.ParticleContainer(this.MAX_PARTICLES, {
             scale: true,
             position: true,
@@ -40,6 +38,7 @@ export default class FireParticleSystem extends Container {
 
     public start(): void {
         this.visible = true;
+        this.createTorch();
         this.loadTextures();
         this._glow.startPulse();
     }
@@ -49,8 +48,20 @@ export default class FireParticleSystem extends Container {
         this._glow.stopPulse();
     }
 
-    private setupTorch(): void {
-        const texture = PIXI.Texture.from(ENGINE.resources.getItemPath('torch'));
+    private createTorch(): void {
+        if (this._torch) return;
+
+        const texture = ENGINE.resources.items['torch'] as PIXI.Texture;
+
+        if (!texture) {
+            console.warn('Torch texture not found in resources');
+            return;
+        }
+
+        this.setupTorch(texture);
+    }
+
+    private setupTorch(texture: PIXI.Texture): void {
         this._torch = new PIXI.Sprite(texture);
         this._torch.anchor.set(0.5);
         this._torch.scale.set(1.5);
@@ -64,8 +75,10 @@ export default class FireParticleSystem extends Container {
             return;
         }
 
+        const texture = ENGINE.resources.items['fireSpriteSheet'] as PIXI.Texture;
+
         SpriteSheetLoader.load(
-            ENGINE.resources.getItemPath('fireSpriteSheet'),
+            texture,
             3,
             3,
             (frames) => {

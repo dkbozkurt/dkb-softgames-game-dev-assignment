@@ -2,17 +2,15 @@ import * as PIXI from 'pixi.js';
 
 export default class SpriteSheetLoader {
     static load(
-        texturePath: string,
+        texture: PIXI.Texture,
         cols: number,
         rows: number,
         onComplete: (frames: PIXI.Texture[]) => void
     ): void {
-        const baseTexture = PIXI.Texture.from(texturePath);
-
-        if (baseTexture.baseTexture.valid) {
-            onComplete(this.slice(baseTexture, cols, rows));
+        if (texture.baseTexture.valid) {
+            onComplete(this.slice(texture, cols, rows));
         } else {
-            baseTexture.once('update', () => onComplete(this.slice(baseTexture, cols, rows)));
+            texture.baseTexture.once('loaded', () => onComplete(this.slice(texture, cols, rows)));
         }
     }
 
