@@ -9,6 +9,14 @@ export default class CardSprite extends PIXI.Sprite {
         this.scale.set(scale);
     }
 
+    /**
+     * Animates the card to a target position.
+     * @param targetX Destination X
+     * @param targetY Destination Y
+     * @param targetRotation Destination Rotation
+     * @param duration Duration in milliseconds
+     * @param onComplete Callback when movement is done
+     */
     public animateTo(
         targetX: number,
         targetY: number,
@@ -20,18 +28,22 @@ export default class CardSprite extends PIXI.Sprite {
 
         const durationSec = duration / 1000;
 
+        // 1. Movement Tween
         gsap.to(this, {
             x: targetX,
             y: targetY,
             duration: durationSec,
-            ease: 'power3.out',
-            onComplete
+            ease: 'power3.out', // Smooth slow-down
+            onComplete: () => {
+                if (onComplete) onComplete();
+            }
         });
 
+        // 2. Rotation Tween
         gsap.to(this, {
             rotation: targetRotation,
             duration: durationSec,
-            ease: 'power2.in'
+            ease: 'power2.inOut'
         });
     }
 

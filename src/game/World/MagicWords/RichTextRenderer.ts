@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import { GameConfig } from '../../Config/GameConfig';
 
 type TextToken = {
     type: 'text' | 'emoji';
@@ -6,29 +7,18 @@ type TextToken = {
     isBold?: boolean;
 };
 
-type RenderConfig = {
-    fontSize: number;
-    lineHeight: number;
-    fontFamily: string;
-    textColor: number;
-};
-
-const DEFAULT_CONFIG: RenderConfig = {
-    fontSize: 24,
-    lineHeight: 40,
-    fontFamily: 'PoppinsBold',
-    textColor: 0xffffff
-};
-
 export default class RichTextRenderer {
     private _emojiMap: Map<string, string>;
-    private _config: RenderConfig;
+    private _config = GameConfig.MagicWords.Text;
 
-    constructor(emojiMap: Map<string, string>, config: Partial<RenderConfig> = {}) {
+    constructor(emojiMap: Map<string, string>) {
         this._emojiMap = emojiMap;
-        this._config = { ...DEFAULT_CONFIG, ...config };
     }
 
+    /**
+     * Renders text mixed with emojis into the container.
+     * @returns The total height of the rendered text block and the list of created objects for animation.
+     */
     public render(
         container: PIXI.Container,
         text: string,
@@ -36,7 +26,8 @@ export default class RichTextRenderer {
         startY: number,
         align: 'left' | 'right' | 'center',
         maxWidth: number
-    ): number {
+    ): { height: number; items: PIXI.DisplayObject[] } {
+        
         const tokens = this.tokenize(text);
         const lines = this.measureLines(tokens, maxWidth);
         return this.positionElements(container, lines, startX, startY, align, maxWidth);
@@ -44,6 +35,7 @@ export default class RichTextRenderer {
 
     private tokenize(text: string): TextToken[] {
         const result: TextToken[] = [];
+        // Split by {emojiKey}
         const parts = text.split(/({[^}]+})/g);
 
         parts.forEach(part => {
@@ -63,6 +55,7 @@ export default class RichTextRenderer {
     }
 
     private tokenizeBoldText(text: string, result: TextToken[]): void {
+        // Split by *bold text*
         const boldParts = text.split(/(\*[^*]+\*)/g);
 
         boldParts.forEach(part => {
@@ -76,7 +69,9 @@ export default class RichTextRenderer {
                 content = content.substring(1, content.length - 1);
             }
 
+            // Split by spaces to handle wrapping
             content.split(/(\s+)/).forEach(word => {
+                if (word === '') return;
                 result.push({ type: 'text', content: word, isBold });
             });
         });
@@ -93,6 +88,7 @@ export default class RichTextRenderer {
 
             const itemWidth = this.getItemWidth(displayObject);
 
+            // Wrap if exceeding max width (and not the first item)
             if (currentLineWidth + itemWidth > maxWidth && currentLineWidth > 0) {
                 lines.push({ width: currentLineWidth, items: currentLineItems });
                 currentLineItems = [];
@@ -113,9 +109,9 @@ export default class RichTextRenderer {
     private createDisplayObject(token: TextToken): PIXI.DisplayObject | null {
         if (token.type === 'text') {
             return new PIXI.Text(token.content, {
-                fontFamily: this._config.fontFamily,
-                fontSize: this._config.fontSize,
-                fill: this._config.textColor,
+                fontFamily: this._config.FontFamily,
+                fontSize: this._config.FontSize,
+                fill: this._config.Color,
                 fontWeight: token.isBold ? 'bold' : 'normal'
             });
         }
@@ -129,10 +125,12 @@ export default class RichTextRenderer {
 
     private createEmojiSprite(url: string): PIXI.Container {
         const container = new PIXI.Container();
-        const size = this._config.fontSize + 5;
+        const size = this._config.FontSize + 5;
         const texture = PIXI.Texture.from(url, { resourceOptions: { crossorigin: 'anonymous' } });
         const sprite = new PIXI.Sprite(texture);
-        sprite.visible = false;
+        
+        // Hide initially until loaded to prevent popping
+        sprite.visible = false; 
 
         const onLoaded = () => {
             sprite.width = size;
@@ -143,13 +141,13 @@ export default class RichTextRenderer {
         if (texture.valid) onLoaded();
         else texture.once('update', onLoaded);
 
-        sprite.anchor.set(0, 0.15);
+        sprite.anchor.set(0, 0.15); // Slight offset for vertical alignment with text
         container.addChild(sprite);
         return container;
     }
 
     private getItemWidth(item: PIXI.DisplayObject): number {
-        return item instanceof PIXI.Text ? item.width : this._config.fontSize + 5;
+        return item instanceof PIXI.Text ? item.width : this._config.FontSize + 5;
     }
 
     private positionElements(
@@ -159,8 +157,9 @@ export default class RichTextRenderer {
         startY: number,
         align: 'left' | 'right' | 'center',
         maxWidth: number
-    ): number {
+    ): { height: number; items: PIXI.DisplayObject[] } {
         let currentY = startY;
+        const allItems: PIXI.DisplayObject[] = [];
 
         lines.forEach(line => {
             let currentX = this.calculateLineStartX(startX, maxWidth, line.width, align);
@@ -168,13 +167,14 @@ export default class RichTextRenderer {
             line.items.forEach(item => {
                 item.position.set(currentX, currentY);
                 container.addChild(item);
+                allItems.push(item);
                 currentX += this.getItemWidth(item);
             });
 
-            currentY += this._config.lineHeight;
+            currentY += this._config.LineHeight;
         });
 
-        return currentY;
+        return { height: currentY, items: allItems };
     }
 
     private calculateLineStartX(startX: number, maxWidth: number, lineWidth: number, align: string): number {
