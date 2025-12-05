@@ -16,10 +16,18 @@ export default class FireParticleSystem extends Container {
     private _particleContainer: PIXI.ParticleContainer;
     private _particles: FireParticle[] = [];
     private _textureFrames: PIXI.Texture[] = [];
-    
+
+    // Core settings
     private readonly MAX_PARTICLES = 10;
     private readonly GRID_COLS = 3;
     private readonly GRID_ROWS = 3;
+
+    // Configuration - Easy to tweak
+    private readonly PARTICLE_LIFETIME = { min: 30, max: 50 };
+    private readonly PARTICLE_SPEED_Y = { min: -3, max: -5 }; // Negative is Upwards
+    private readonly PARTICLE_SCALE = { min: 0.2, max: 0.5 }; // Reduced size
+    private readonly PARTICLE_SPAWN_WIDTH = 4; // Reduced spread (+/- 4px)
+    private readonly PARTICLE_GLOBAL_SPEED = 60; // Base speed multiplier
 
     constructor() {
         super();
@@ -52,7 +60,7 @@ export default class FireParticleSystem extends Container {
 
         // Get the full spritesheet texture
         const baseTexture = PIXI.Texture.from(ENGINE.resources.getItemPath('fireSpriteSheet'));
-        
+
         // Ensure texture is fully loaded before slicing
         if (!baseTexture.baseTexture.valid) {
             baseTexture.once('update', () => this.sliceTextures(baseTexture));
@@ -79,7 +87,7 @@ export default class FireParticleSystem extends Container {
                 this._textureFrames.push(frame);
             }
         }
-        
+
         // Refresh particles if they were waiting
         if (this._particles.length === 0 && this.visible) {
             this.initParticles();
@@ -91,50 +99,51 @@ export default class FireParticleSystem extends Container {
 
         this._particles = [];
         this._particleContainer.removeChildren();
-        
+
         for (let i = 0; i < this.MAX_PARTICLES; i++) {
             // Start with the first frame (Top-Left)
             const particle = new PIXI.Sprite(this._textureFrames[0]) as FireParticle;
-            particle.anchor.set(0.5, 0.7); 
-            
-            this.resetParticle(particle, true); 
-            
+            particle.anchor.set(0.5, 0.7);
+
+            this.resetParticle(particle, true);
+
             this._particles.push(particle);
             this._particleContainer.addChild(particle);
         }
     }
 
     private resetParticle(p: FireParticle, preWarm: boolean = false): void {
-        p.x = Utilities.getRandomFloatingNumber(-10, 10);
-        p.y = 150; 
+        // Tighter spawn area
+        p.x = Utilities.getRandomFloatingNumber(-this.PARTICLE_SPAWN_WIDTH, this.PARTICLE_SPAWN_WIDTH);
+        p.y = 150;
 
         // Faster upward velocity
         p.vx = Utilities.getRandomFloatingNumber(-0.5, 0.5);
-        p.vy = Utilities.getRandomFloatingNumber(-4, -7); 
+        p.vy = Utilities.getRandomFloatingNumber(this.PARTICLE_SPEED_Y.min, this.PARTICLE_SPEED_Y.max);
 
-        p.maxLife = Utilities.getRandomFloatingNumber(50, 80);
+        p.maxLife = Utilities.getRandomFloatingNumber(this.PARTICLE_LIFETIME.min, this.PARTICLE_LIFETIME.max);
         p.age = 0;
         p.waveOffset = Utilities.getRandomFloatingNumber(0, Math.PI * 2);
 
-        p.alpha = 0; 
-        p.initialScale = Utilities.getRandomFloatingNumber(0.5, 0.8);
+        p.alpha = 0;
+        p.initialScale = Utilities.getRandomFloatingNumber(this.PARTICLE_SCALE.min, this.PARTICLE_SCALE.max);
         p.scale.set(p.initialScale);
         p.rotation = 0;
         p.tint = 0xFFFFFF;
 
         if (preWarm) {
             const warmFrames = Utilities.getRandomNumber(0, 50);
-            for(let i = 0; i < warmFrames; i++) {
+            for (let i = 0; i < warmFrames; i++) {
                 this.updateParticleState(p, 1);
-                if (p.age >= p.maxLife) p.age = 0; 
+                if (p.age >= p.maxLife) p.age = 0;
             }
         }
     }
 
     public update(): void {
         if (!this.visible || this._textureFrames.length === 0) return;
-        
-        const speedFactor = ENGINE.time.deltaTime * 60;
+
+        const speedFactor = ENGINE.time.deltaTime * this.PARTICLE_GLOBAL_SPEED;
 
         for (const p of this._particles) {
             this.updateParticleState(p, speedFactor);
@@ -157,22 +166,15 @@ export default class FireParticleSystem extends Container {
         const t = p.age / p.maxLife;
 
         // 2. Texture Animation Logic
-        // Map lifetime 't' (0 to 1) to frame index (0 to 8)
-        // This makes it start at Top-Left (0) and end at Bottom-Right (8)
-        // If you specifically want it to end at Bottom-Left (index 6), change to:
-        // const totalFrames = 7; // indices 0 to 6
         const totalFrames = this._textureFrames.length;
         const frameIndex = Math.floor(t * totalFrames);
-        
-        // Safety clamp
         const safeIndex = Math.min(frameIndex, totalFrames - 1);
-        
-        // Swap texture frame
+
         p.texture = this._textureFrames[safeIndex];
 
         // 3. Scale & Alpha
         p.scale.set(p.initialScale * (1.2 - t * 0.4)); // Slight shrink
-        
+
         if (t < 0.1) p.alpha = t * 10;
         else p.alpha = 1 - Math.pow(t, 2);
 
@@ -185,9 +187,6 @@ export default class FireParticleSystem extends Container {
     }
 
     public destroy(options?: boolean | PIXI.IDestroyOptions): void {
-        // Textures are managed by Resources manager, usually we don't destroy them here
-        // unless we created them procedurally. Since these are from a spritesheet 
-        // managed by assets, we just clear the arrays.
         this._textureFrames = [];
         super.destroy(options);
     }
