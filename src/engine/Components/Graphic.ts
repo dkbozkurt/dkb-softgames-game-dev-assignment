@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { AnchorPoint } from './Sprite';
+import AnchorHelper, { AnchorPoint } from '../Utils/AnchorHelper';
 
 export type ShapeType = 'rectangle' | 'circle' | 'roundedRectangle';
 
@@ -32,7 +32,8 @@ export class Graphic extends PIXI.Graphics {
 
         this.alpha = config.alpha ?? 1;
         this.draw();
-        this.setAnchorPoint(posX, posY, anchor);
+        AnchorHelper.applyToPivot(this, width, height, anchor);
+        this.position.set(posX, posY);
 
         if (parent) parent.addChild(this);
     }
@@ -55,39 +56,5 @@ export class Graphic extends PIXI.Graphics {
         }
 
         this.endFill();
-    }
-
-    protected setAnchorPoint(posX: number, posY: number, anchor: AnchorPoint): void {
-        switch (anchor) {
-            case 'topLeft':
-                this.pivot.set(0, 0);
-                break;
-            case 'topCenter':
-                this.pivot.set(this._width / 2, 0);
-                break;
-            case 'topRight':
-                this.pivot.set(this._width, 0);
-                break;
-            case 'middleLeft':
-                this.pivot.set(0, this._height / 2);
-                break;
-            case 'middleCenter':
-                this.pivot.set(this._width / 2, this._height / 2);
-                break;
-            case 'middleRight':
-                this.pivot.set(this._width, this._height / 2);
-                break;
-            case 'bottomLeft':
-                this.pivot.set(0, this._height);
-                break;
-            case 'bottomCenter':
-                this.pivot.set(this._width / 2, this._height);
-                break;
-            case 'bottomRight':
-                this.pivot.set(this._width, this._height);
-                break;
-        }
-
-        this.position.set(posX, posY);
     }
 }
