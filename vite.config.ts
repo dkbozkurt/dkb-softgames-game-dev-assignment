@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
 			open: !('SANDBOX_URL' in process.env || 'CODESANDBOX_HOST' in process.env),
 		},
 		build: {
-			base: './',
+			base: '/dkb-softgames-game-dev-assignment/',
 			outDir: path.resolve(__dirname, outDir),
 			emptyOutDir: true,
 			assetsInlineLimit: Infinity,

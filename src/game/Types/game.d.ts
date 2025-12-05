@@ -18,5 +18,3 @@ namespace game {
         | 'Message'
         | 'Fire';
 }
-
-
