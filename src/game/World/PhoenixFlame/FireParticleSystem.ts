@@ -3,13 +3,13 @@ import { Container } from '../../../engine/Components/Container';
 import ENGINE from '../../../engine/Engine';
 import Utilities from '../../../engine/Utils/Utilities';
 
-// Interface for our custom particle sprite to hold physics data
 interface FireParticle extends PIXI.Sprite {
     vx: number;
     vy: number;
-    life: number;
     maxLife: number;
     age: number;
+    initialScale: number;
+    waveOffset: number; // For sine wave movement
 }
 
 export default class FireParticleSystem extends Container {
@@ -17,13 +17,11 @@ export default class FireParticleSystem extends Container {
     private _particles: FireParticle[] = [];
     private _fireTexture: PIXI.Texture | null = null;
     
-    // Task requirement: Keep the number of images at max 10 sprites on the screen
     private readonly MAX_PARTICLES = 10;
 
     constructor() {
         super();
 
-        // Use ParticleContainer for high performance rendering
         this._particleContainer = new PIXI.ParticleContainer(this.MAX_PARTICLES, {
             scale: true,
             position: true,
@@ -33,7 +31,6 @@ export default class FireParticleSystem extends Container {
             tint: true
         });
 
-        // Additive blending is crucial for fire effects
         this._particleContainer.blendMode = PIXI.BLEND_MODES.ADD;
         this.addChild(this._particleContainer);
     }
@@ -45,18 +42,18 @@ export default class FireParticleSystem extends Container {
     }
 
     public stop(): void {
-        this.cleanup();
         this.visible = false;
     }
 
     /**
-     * Generates a soft radial gradient texture procedurally.
+     * Generates a "Wispy" flame texture using Canvas API.
+     * This creates a teardrop-like shape which looks much better than a circle.
      */
     private createFireTexture(): void {
         if (this._fireTexture) return;
 
-        const size = 64;
-        const halfSize = size / 2;
+        const size = 128; // Larger texture for better detail
+        const half = size / 2;
         
         const canvas = document.createElement('canvas');
         canvas.width = size;
@@ -65,14 +62,21 @@ export default class FireParticleSystem extends Container {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Create a radial gradient: White center -> Transparent edge
-        const grad = ctx.createRadialGradient(halfSize, halfSize, 0, halfSize, halfSize, halfSize);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');     // Hot core
-        grad.addColorStop(0.4, 'rgba(255, 255, 255, 0.3)'); // Soft glow
-        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');     // Fade out
+        // Draw a flame shape (teardrop)
+        ctx.beginPath();
+        ctx.moveTo(half, 0); // Top tip
+        ctx.quadraticCurveTo(size, half, half, size); // Right curve to bottom
+        ctx.quadraticCurveTo(0, half, half, 0); // Left curve to top
+        ctx.closePath();
+
+        // Fill with a soft gradient
+        const grad = ctx.createRadialGradient(half, size * 0.8, 0, half, size * 0.6, half);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');     // Core white
+        grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.4)'); // Mid halo
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');     // Transparent edge
 
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, size, size);
+        ctx.fill();
 
         this._fireTexture = PIXI.Texture.from(canvas);
     }
@@ -85,9 +89,8 @@ export default class FireParticleSystem extends Container {
         
         for (let i = 0; i < this.MAX_PARTICLES; i++) {
             const particle = new PIXI.Sprite(this._fireTexture) as FireParticle;
-            particle.anchor.set(0.5);
+            particle.anchor.set(0.5, 0.8); // Anchor near bottom for flame behavior
             
-            // Initialize particle state with pre-warming to spread them out immediately
             this.resetParticle(particle, true); 
             
             this._particles.push(particle);
@@ -96,25 +99,27 @@ export default class FireParticleSystem extends Container {
     }
 
     private resetParticle(p: FireParticle, preWarm: boolean = false): void {
-        // Spawn area at the bottom center (relative to this container)
-        p.x = Utilities.getRandomFloatingNumber(-20, 20);
-        p.y = 200; 
+        // Spawn tightly at the base (simulating a torch head)
+        p.x = Utilities.getRandomFloatingNumber(-5, 5);
+        p.y = 150; // Base Y position
 
-        // Upward velocity with some horizontal spread
-        p.vx = Utilities.getRandomFloatingNumber(-1.0, 1.0);
-        p.vy = Utilities.getRandomFloatingNumber(-3, -6); // Negative Y is up
+        // Fast upward velocity
+        p.vx = Utilities.getRandomFloatingNumber(-0.5, 0.5);
+        p.vy = Utilities.getRandomFloatingNumber(-5, -8); 
 
-        p.maxLife = Utilities.getRandomFloatingNumber(60, 100);
+        p.maxLife = Utilities.getRandomFloatingNumber(40, 70);
         p.age = 0;
+        p.waveOffset = Utilities.getRandomFloatingNumber(0, Math.PI * 2);
 
-        // Initial Visuals
+        // Visuals
         p.alpha = 0; 
-        p.scale.set(Utilities.getRandomFloatingNumber(0.5, 1.2));
-        p.rotation = Utilities.getRandomFloatingNumber(0, Math.PI * 2);
-        p.tint = 0xFFF000; // Start Yellowish-White
+        p.initialScale = Utilities.getRandomFloatingNumber(0.8, 1.4);
+        p.scale.set(p.initialScale);
+        p.rotation = 0;
+        p.tint = 0xFFFFFF;
 
         if (preWarm) {
-            const warmFrames = Utilities.getRandomNumber(0, 60);
+            const warmFrames = Utilities.getRandomNumber(0, 50);
             for(let i = 0; i < warmFrames; i++) {
                 this.updateParticleState(p, 1);
                 if (p.age >= p.maxLife) p.age = 0; 
@@ -124,9 +129,9 @@ export default class FireParticleSystem extends Container {
 
     public update(): void {
         if (!this.visible) return;
-
-        // Scale simulation speed by delta time
-        const speedFactor = ENGINE.time.deltaTime * 60;
+        
+        // Slightly faster than 60fps base for snappier fire
+        const speedFactor = ENGINE.time.deltaTime * 65;
 
         for (const p of this._particles) {
             this.updateParticleState(p, speedFactor);
@@ -141,57 +146,42 @@ export default class FireParticleSystem extends Container {
             return;
         }
 
-        // 1. Movement
-        p.x += p.vx * delta;
+        // 1. Torch Turbulence (Sine wave motion)
+        // Adds that characteristic "waving" look of a torch
+        p.x += (p.vx + Math.sin(p.age * 0.1 + p.waveOffset) * 0.5) * delta;
         p.y += p.vy * delta;
-        
-        // Add turbulence
-        p.vx += Utilities.getRandomFloatingNumber(-0.1, 0.1) * delta;
 
-        // 2. Visual Evolution
         const t = p.age / p.maxLife;
 
-        // Scale
-        if (t < 0.2) {
-            const s = p.scale.x + 0.03 * delta;
-            p.scale.set(s);
-        } else {
-            const s = Math.max(0, p.scale.x - 0.005 * delta);
-            p.scale.set(s);
-        }
+        // 2. Scale: Shrinks as it goes up (classic flame shape)
+        const scale = p.initialScale * (1 - t * 0.6); // Shrinks to 40% of size
+        p.scale.set(scale, scale * 1.1); // Slightly stretched vertically
 
-        // Alpha
-        if (t < 0.1) {
-            p.alpha = t * 10; 
-        } else {
-            p.alpha = 1 - ((t - 0.1) / 0.9); 
-        }
+        // 3. Alpha: Quick fade in, sharp fade out at very tip
+        if (t < 0.1) p.alpha = t * 10;
+        else p.alpha = 1 - Math.pow(t, 3); // Cubic falloff for density
 
-        // Tint
-        if (t < 0.2) {
-            p.tint = 0xFFFF88; // Bright Yellow-White
-        } else if (t < 0.5) {
-            p.tint = 0xFFAA00; // Orange
-        } else if (t < 0.8) {
-            p.tint = 0xFF4400; // Red
+        // 4. Torch Color Palette
+        // Blue/White Core -> Orange Body -> Red Tip
+        if (t < 0.15) {
+            p.tint = 0xAAAAFF; // Blue-ish white core
+        } else if (t < 0.4) {
+            p.tint = 0xFFDD55; // Bright Yellow-Orange
+        } else if (t < 0.7) {
+            p.tint = 0xFF5500; // Deep Orange-Red
         } else {
             p.tint = 0x550000; // Dark Red/Smoke
         }
 
-        p.rotation += 0.02 * delta;
+        // Rotate slightly based on horizontal movement to "lean" into the turn
+        p.rotation = (p.x * 0.02);
     }
 
-    private cleanup(): void {
+    public destroy(options?: boolean | PIXI.IDestroyOptions): void {
         if (this._fireTexture) {
             this._fireTexture.destroy(true);
             this._fireTexture = null;
         }
-        this._particleContainer.removeChildren();
-        this._particles = [];
-    }
-
-    public destroy(options?: boolean | PIXI.IDestroyOptions): void {
-        this.cleanup();
         super.destroy(options);
     }
 }
