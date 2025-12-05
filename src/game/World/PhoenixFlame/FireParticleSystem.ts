@@ -16,6 +16,7 @@ export default class FireParticleSystem extends Container {
     private _particleContainer: PIXI.ParticleContainer;
     private _particles: FireParticle[] = [];
     private _textureFrames: PIXI.Texture[] = [];
+    private _torchSprite: PIXI.Sprite | null = null;
 
     // Core settings
     private readonly MAX_PARTICLES = 10;
@@ -29,19 +30,29 @@ export default class FireParticleSystem extends Container {
     private readonly PARTICLE_SPAWN_WIDTH = 4; // Reduced spread (+/- 4px)
     private readonly PARTICLE_GLOBAL_SPEED = 60; // Base speed multiplier
 
+    // Torch Settings
+    // Since the particle system is centered on screen, 0,0 is the center.
+    // The torch image should be positioned relative to this center point.
+    // Adjust these to align the top of your torch image with (0,0)
+    private readonly TORCH_OFFSET = { x: 0, y: 25 };
+    private readonly TORCH_SCALE = { x: 1.5, y: 1.5 };
+
     constructor() {
         super();
+
+        this.createTorch();
 
         this._particleContainer = new PIXI.ParticleContainer(this.MAX_PARTICLES, {
             scale: true,
             position: true,
             rotation: true,
-            uvs: true, // Required for texture swapping/animation
+            uvs: true,
             alpha: true,
             tint: true
         });
 
         this._particleContainer.blendMode = PIXI.BLEND_MODES.ADD;
+        // Particle container is added at (0,0) so particles spawn from center
         this.addChild(this._particleContainer);
     }
 
@@ -55,13 +66,40 @@ export default class FireParticleSystem extends Container {
         this.visible = false;
     }
 
+    private createTorch(): void {
+        const texture = PIXI.Texture.from(ENGINE.resources.getItemPath('torch'));
+
+        // Wait for load if necessary to center anchor correctly
+        if (texture.baseTexture.valid) {
+            this.setupTorchSprite(texture);
+        } else {
+            texture.once('update', () => this.setupTorchSprite(texture));
+        }
+    }
+
+    private setupTorchSprite(texture: PIXI.Texture): void {
+        this._torchSprite = new PIXI.Sprite(texture);
+        this._torchSprite.anchor.set(0.5); // Center anchor
+        this._torchSprite.scale.set(
+            this.TORCH_SCALE.x,
+            this.TORCH_SCALE.y
+        );  // Adjust scale if needed
+
+        // Position torch independently from the particles
+        this._torchSprite.position.set(
+            this.TORCH_OFFSET.x,
+            this.TORCH_OFFSET.y
+        );
+
+        // Add behind particles (index 0)
+        this.addChildAt(this._torchSprite, 0);
+    }
+
     private prepareTextures(): void {
         if (this._textureFrames.length > 0) return;
 
-        // Get the full spritesheet texture
         const baseTexture = PIXI.Texture.from(ENGINE.resources.getItemPath('fireSpriteSheet'));
 
-        // Ensure texture is fully loaded before slicing
         if (!baseTexture.baseTexture.valid) {
             baseTexture.once('update', () => this.sliceTextures(baseTexture));
         } else {
@@ -88,7 +126,6 @@ export default class FireParticleSystem extends Container {
             }
         }
 
-        // Refresh particles if they were waiting
         if (this._particles.length === 0 && this.visible) {
             this.initParticles();
         }
@@ -101,7 +138,6 @@ export default class FireParticleSystem extends Container {
         this._particleContainer.removeChildren();
 
         for (let i = 0; i < this.MAX_PARTICLES; i++) {
-            // Start with the first frame (Top-Left)
             const particle = new PIXI.Sprite(this._textureFrames[0]) as FireParticle;
             particle.anchor.set(0.5, 0.7);
 
@@ -115,7 +151,10 @@ export default class FireParticleSystem extends Container {
     private resetParticle(p: FireParticle, preWarm: boolean = false): void {
         // Tighter spawn area
         p.x = Utilities.getRandomFloatingNumber(-this.PARTICLE_SPAWN_WIDTH, this.PARTICLE_SPAWN_WIDTH);
-        p.y = 150;
+
+        // Spawn at 0,0 (Center of the particle system container)
+        // Since the container itself is centered on screen, this puts fire at the center.
+        p.y = 0;
 
         // Faster upward velocity
         p.vx = Utilities.getRandomFloatingNumber(-0.5, 0.5);
