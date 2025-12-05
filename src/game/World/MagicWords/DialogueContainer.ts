@@ -15,7 +15,7 @@ type DialogueItem = {
 export default class DialogueContainer extends Container {
     private _dialogueQueue: DialogueItem[] = [];
     private _activeBubbles: PIXI.Container[] = []; // Stores the visual message bubbles
-    
+
     private _emojiMap: Map<string, string> = new Map();
     private _avatarMap: Map<string, AvatarData> = new Map();
     private _displayTimeout: any = null;
@@ -23,14 +23,23 @@ export default class DialogueContainer extends Container {
     private readonly CONTENT_WIDTH = 500;
     private readonly AVATAR_SIZE = 100;
     private readonly PADDING = 20;
-    private readonly BUBBLE_SPACING = 30; // Space between messages
-    
+    private readonly BUBBLE_SPACING = 60; // Increased spacing between messages
+
     private readonly LINE_HEIGHT = 40;
     private readonly FONT_SIZE = 24;
 
+    private readonly EACH_CONVERSATION_DURATION = 3000;
+
     constructor() {
         super();
-        // No single _contentContainer anymore, we add bubbles directly to 'this'
+        this.showLoading();
+    }
+
+    // Call this immediately before fetching data to avoid empty screen
+    public showLoading(): void {
+        this.reset();
+        const loadingLabel = this.createSystemMessage("... Connecting to Magic Words ...");
+        this.addChild(loadingLabel);
     }
 
     public printData(data: any): void {
@@ -38,11 +47,11 @@ export default class DialogueContainer extends Container {
         this._emojiMap.clear();
         this._avatarMap.clear();
         this._dialogueQueue = [];
-        
+
         console.log('[DialogueContainer] Raw Data:', data);
 
         this.parseData(data);
-        
+
         if (this._dialogueQueue.length > 0) {
             this.showConversationStart();
         } else {
@@ -99,21 +108,28 @@ export default class DialogueContainer extends Container {
                     });
                 }
             });
-        } 
+        }
     }
 
     private showConversationStart(): void {
+        this.reset(); // Clear everything
+
         const startLabel = this.createSystemMessage("... Conversation starting ...");
-        this.addNewBubble(startLabel);
+        this.addChild(startLabel); // Add directly, center of screen
 
         this._displayTimeout = setTimeout(() => {
+            // Remove start label before beginning chat flow
+            this.removeChild(startLabel);
+            startLabel.destroy();
             this.showNextDialogue();
-        }, 2000);
+        }, this.EACH_CONVERSATION_DURATION/2);
     }
 
     private showConversationEnd(): void {
+        this.reset(); // Clear chat history
+
         const endLabel = this.createSystemMessage("... Conversation ended ...");
-        this.addNewBubble(endLabel);
+        this.addChild(endLabel); // Add directly, center of screen
     }
 
     private showNextDialogue(): void {
@@ -123,14 +139,14 @@ export default class DialogueContainer extends Container {
         }
 
         const item = this._dialogueQueue.shift()!;
-        
+
         // Create the visual bubble for this dialogue item
         const bubble = this.createDialogueBubble(item);
         this.addNewBubble(bubble);
 
         this._displayTimeout = setTimeout(() => {
             this.showNextDialogue();
-        }, 3000); 
+        }, this.EACH_CONVERSATION_DURATION);
     }
 
     /**
@@ -141,39 +157,42 @@ export default class DialogueContainer extends Container {
         this.addChild(newBubble);
 
         // Get the height of the new bubble to calculate shift
-        // Using getLocalBounds for accurate sizing of the new item
         const bounds = newBubble.getLocalBounds();
-        const newBubbleHeight = bounds.height; 
-        
-        // We want the new bubble to appear at roughly y=0 (or slightly below center if preferred)
-        // Let's position it such that its visual center is at y=0 initially? 
-        // Or better, let's build from bottom up. Let's say y=200 is the "current line".
-        // For now, let's keep the new message at y=0 (center of screen effectively due to parent position).
-        newBubble.position.set(0, 0); 
-        // Ensure new bubble is opaque
+        const newBubbleHeight = bounds.height;
+
+        // Position new bubble at 0,0 (center)
+        newBubble.position.set(0, 0);
         newBubble.alpha = 1;
 
-        // 2. Shift existing bubbles UP
+        // 2. Shift existing bubbles UP and Fade
         const shiftAmount = newBubbleHeight + this.BUBBLE_SPACING;
 
-        this._activeBubbles.forEach(bubble => {
+        // Iterate backwards to safely remove items if needed
+        for (let i = this._activeBubbles.length - 1; i >= 0; i--) {
+            const bubble = this._activeBubbles[i];
+
             // Move up
-            // Using gsap would be smoother, but direct set is fine for now
             bubble.y -= shiftAmount;
-            
-            // Apply fade effect (messaging history style)
-            bubble.alpha = 0.5;
-        });
+
+            // Decrease Alpha
+            bubble.alpha *= 0.5; // Faster fade
+
+            // Logic to fully fade out the 4th bubble
+            const age = this._activeBubbles.length - i;
+
+            if (age >= 3) { // 3rd previous bubble (so 4th total on screen)
+                bubble.alpha = 0;
+                bubble.visible = false;
+            }
+        }
 
         // 3. Add to tracking array
         this._activeBubbles.push(newBubble);
 
-        // Optional: Prune very old messages if they go off screen to save memory
+        // Optional: Cleanup completely if way off screen or too old
         if (this._activeBubbles.length > 5) {
             const oldBubble = this._activeBubbles.shift();
-            if (oldBubble) {
-                oldBubble.destroy({ children: true });
-            }
+            if (oldBubble) oldBubble.destroy({ children: true });
         }
     }
 
@@ -185,7 +204,7 @@ export default class DialogueContainer extends Container {
 
         const avatarData = this._avatarMap.get(item.name);
         let alignment: 'left' | 'right' | 'center' = 'center';
-        
+
         if (avatarData) {
             alignment = avatarData.position === 'right' ? 'right' : 'left';
         }
@@ -209,12 +228,12 @@ export default class DialogueContainer extends Container {
             textStartX = 0;
             textMaxWidth = this.CONTENT_WIDTH;
         }
-        
+
         const textBlockHeight = this.renderRichText(
             bubbleContainer,
-            item.text, 
-            textStartX, 
-            0, 
+            item.text,
+            textStartX,
+            0,
             alignment,
             textMaxWidth
         );
@@ -228,8 +247,8 @@ export default class DialogueContainer extends Container {
             align: alignment === 'right' ? 'right' : (alignment === 'center' ? 'center' : 'left')
         });
 
-        nameLabel.y = textBlockHeight + 5; 
-        
+        nameLabel.y = textBlockHeight + 5;
+
         if (alignment === 'right') {
             nameLabel.x = textMaxWidth - nameLabel.width;
         } else if (alignment === 'left') {
@@ -237,7 +256,7 @@ export default class DialogueContainer extends Container {
         } else {
             nameLabel.x = (this.CONTENT_WIDTH - nameLabel.width) / 2;
         }
-        
+
         bubbleContainer.addChild(nameLabel);
 
         // Center the content within the bubble container's coordinate system
@@ -257,20 +276,16 @@ export default class DialogueContainer extends Container {
             align: 'center'
         });
         label.anchor.set(0.5);
-        label.position.set(this.CONTENT_WIDTH / 2, 0);
+        label.position.set(0, 0); // At 0,0 relative to container
         container.addChild(label);
-        
-        // Pivot center
-        const bounds = container.getLocalBounds();
-        container.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-        
+
         return container;
     }
 
     private renderRichText(targetContainer: PIXI.Container, text: string, startX: number, startY: number, align: 'left' | 'right' | 'center', maxWidth: number): number {
         const tokens = this.tokenizeText(text);
         const lines: { width: number, items: PIXI.DisplayObject[] }[] = [];
-        
+
         let currentLineItems: PIXI.DisplayObject[] = [];
         let currentLineWidth = 0;
 
@@ -284,10 +299,10 @@ export default class DialogueContainer extends Container {
                     fontSize: this.FONT_SIZE,
                     fill: 0xffffff
                 };
-                if (token.isBold) style.fontWeight = 'bold'; 
+                if (token.isBold) style.fontWeight = 'bold';
 
                 displayObject = new PIXI.Text(token.content, style);
-            } 
+            }
             else if (token.type === 'emoji') {
                 displayObject = this.createEmojiSprite(token.content);
             }
@@ -325,7 +340,7 @@ export default class DialogueContainer extends Container {
             line.items.forEach(item => {
                 item.position.set(currentX, currentY);
                 targetContainer.addChild(item);
-                
+
                 const itemWidth = (item instanceof PIXI.Text) ? item.width : (this.FONT_SIZE + 5);
                 currentX += itemWidth;
             });
@@ -349,7 +364,7 @@ export default class DialogueContainer extends Container {
                 const url = this._emojiMap.get(key);
                 if (url) {
                     result.push({ type: 'emoji', content: url });
-                } 
+                }
                 // else ignore missing
             } else {
                 const boldParts = part.split(/(\*[^*]+\*)/g);
@@ -376,7 +391,7 @@ export default class DialogueContainer extends Container {
         const size = this.FONT_SIZE + 5;
         const texture = PIXI.Texture.from(url, { resourceOptions: { crossorigin: 'anonymous' } });
         const sprite = new PIXI.Sprite(texture);
-        sprite.visible = false; 
+        sprite.visible = false;
 
         const onLoaded = () => {
             sprite.width = size;
@@ -394,7 +409,7 @@ export default class DialogueContainer extends Container {
 
     private createAvatarSprite(parent: PIXI.Container, url: string, isRight: boolean): void {
         const container = new PIXI.Container();
-        
+
         const bg = new PIXI.Graphics();
         bg.beginFill(0xFFFFFF, 0.1);
         bg.drawRoundedRect(0, 0, this.AVATAR_SIZE, this.AVATAR_SIZE, 10);
