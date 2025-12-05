@@ -1,8 +1,9 @@
 import { Scene } from './Scene';
-import { Text } from '../../engine/Components/Text';
+import MagicWordsService from '../World/MagicWords/MagicWordsService';
+import DialogueContainer from '../World/MagicWords/DialogueContainer';
 
 export default class MagicWordsScene extends Scene {
-    private _titleText!: Text;
+    private _dialogueContainer!: DialogueContainer;
 
     constructor() {
         super();
@@ -10,23 +11,30 @@ export default class MagicWordsScene extends Scene {
     }
 
     private setupUI(): void {
-        this._titleText = new Text(
-            0,
-            0,
-            'Magic Words - Coming Soon',
-            { fontFamily: 'PoppinsBold', fontSize: 36, fill: 0xffffff },
-            this
-        );
+        this._dialogueContainer = new DialogueContainer();
+        this.addChild(this._dialogueContainer);
     }
 
-    protected onShow(): void {}
+    protected onShow(): void {
+        // Fetch data using the service
+        // Since onShow must return void (defined in Scene class), we cannot use async/await signature directly
+        // We use .then() to handle the promise resolution
+        MagicWordsService.instance().getData().then((data) => {
+            // Pass data to the component to print it
+            if (data) {
+                this._dialogueContainer.printData(data);
+            } else {
+                this._dialogueContainer.printData({ error: 'Failed to load data.' });
+            }
+        });
+    }
 
-    protected onHide(): void {}
+    protected onHide(): void { }
 
-    public update(): void {}
+    public update(): void { }
 
     public destroy(): void {
-        this._titleText.destroy();
+        this._dialogueContainer.destroy({ children: true });
         super.destroy({ children: true });
     }
 }
