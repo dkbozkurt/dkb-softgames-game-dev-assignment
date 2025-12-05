@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import { Container } from '../../../engine/Components/Container';
 import ENGINE from '../../../engine/Engine';
 import Utilities from '../../../engine/Utils/Utilities';
+import gsap from 'gsap';
 
 interface FireParticle extends PIXI.Sprite {
     vx: number;
@@ -17,6 +18,7 @@ export default class FireParticleSystem extends Container {
     private _particles: FireParticle[] = [];
     private _textureFrames: PIXI.Texture[] = [];
     private _torchSprite: PIXI.Sprite | null = null;
+    private _glowSprite: PIXI.Sprite | null = null;
 
     // Core settings
     private readonly MAX_PARTICLES = 10;
@@ -31,17 +33,26 @@ export default class FireParticleSystem extends Container {
     private readonly PARTICLE_GLOBAL_SPEED = 60; // Base speed multiplier
 
     // Torch Settings
-    // Since the particle system is centered on screen, 0,0 is the center.
-    // The torch image should be positioned relative to this center point.
-    // Adjust these to align the top of your torch image with (0,0)
     private readonly TORCH_OFFSET = { x: 0, y: 25 };
     private readonly TORCH_SCALE = { x: 1.5, y: 1.5 };
+
+    // Glow Settings
+    private readonly GLOW_OFFSET = { x: 0, y: -40 };
+    private readonly GLOW_COLOR = 0xFFC571; // Updated color
+    private readonly GLOW_SCALE_MIN = 1.5; // Scaled up
+    private readonly GLOW_SCALE_MAX = 2.2; // Scaled up
+    private readonly GLOW_PULSE_DURATION = 1.5; // Seconds for GSAP
 
     constructor() {
         super();
 
+        // 1. Add Glow (Back)
+        this.createGlow(); 
+
+        // 2. Add Torch (Middle)
         this.createTorch();
 
+        // 3. Add Particles (Front)
         this._particleContainer = new PIXI.ParticleContainer(this.MAX_PARTICLES, {
             scale: true,
             position: true,
@@ -50,9 +61,7 @@ export default class FireParticleSystem extends Container {
             alpha: true,
             tint: true
         });
-
         this._particleContainer.blendMode = PIXI.BLEND_MODES.ADD;
-        // Particle container is added at (0,0) so particles spawn from center
         this.addChild(this._particleContainer);
     }
 
@@ -60,10 +69,74 @@ export default class FireParticleSystem extends Container {
         this.prepareTextures();
         this.initParticles();
         this.visible = true;
+        this.startGlowAnimation();
     }
 
     public stop(): void {
         this.visible = false;
+        this.stopGlowAnimation();
+    }
+
+    private createGlow(): void {
+        const size = 128;
+        const halfSize = size / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+            const grad = ctx.createRadialGradient(halfSize, halfSize, 0, halfSize, halfSize, halfSize);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 0.6)'); // Center alpha
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');   // Outer alpha
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+
+            const texture = PIXI.Texture.from(canvas);
+            this._glowSprite = new PIXI.Sprite(texture);
+            this._glowSprite.anchor.set(0.5);
+            this._glowSprite.tint = this.GLOW_COLOR;
+            this._glowSprite.blendMode = PIXI.BLEND_MODES.ADD;
+            
+            this._glowSprite.position.set(this.GLOW_OFFSET.x, this.GLOW_OFFSET.y);
+            this._glowSprite.scale.set(this.GLOW_SCALE_MIN);
+            
+            this.addChild(this._glowSprite);
+        }
+    }
+
+    private startGlowAnimation(): void {
+        if (!this._glowSprite) return;
+
+        // Ensure clean state
+        gsap.killTweensOf(this._glowSprite.scale);
+        this._glowSprite.scale.set(this.GLOW_SCALE_MIN);
+
+        // Create pulsing animation
+        gsap.to(this._glowSprite.scale, {
+            x: this.GLOW_SCALE_MAX,
+            y: this.GLOW_SCALE_MAX,
+            duration: this.GLOW_PULSE_DURATION,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut"
+        });
+        
+        // Optional alpha pulse
+        gsap.to(this._glowSprite, {
+            alpha: 0.8,
+            duration: this.GLOW_PULSE_DURATION,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut"
+        });
+    }
+
+    private stopGlowAnimation(): void {
+        if (!this._glowSprite) return;
+        gsap.killTweensOf(this._glowSprite);
+        gsap.killTweensOf(this._glowSprite.scale);
     }
 
     private createTorch(): void {
@@ -91,8 +164,8 @@ export default class FireParticleSystem extends Container {
             this.TORCH_OFFSET.y
         );
 
-        // Add behind particles (index 0)
-        this.addChildAt(this._torchSprite, 0);
+        // Add behind particles but in front of glow
+        this.addChildAt(this._torchSprite, 1);
     }
 
     private prepareTextures(): void {
@@ -153,7 +226,6 @@ export default class FireParticleSystem extends Container {
         p.x = Utilities.getRandomFloatingNumber(-this.PARTICLE_SPAWN_WIDTH, this.PARTICLE_SPAWN_WIDTH);
 
         // Spawn at 0,0 (Center of the particle system container)
-        // Since the container itself is centered on screen, this puts fire at the center.
         p.y = 0;
 
         // Faster upward velocity
@@ -180,7 +252,9 @@ export default class FireParticleSystem extends Container {
     }
 
     public update(): void {
-        if (!this.visible || this._textureFrames.length === 0) return;
+        if (!this.visible) return;
+
+        if (this._textureFrames.length === 0) return;
 
         const speedFactor = ENGINE.time.deltaTime * this.PARTICLE_GLOBAL_SPEED;
 
@@ -226,6 +300,10 @@ export default class FireParticleSystem extends Container {
     }
 
     public destroy(options?: boolean | PIXI.IDestroyOptions): void {
+        this.stopGlowAnimation();
+        if (this._glowSprite) {
+            this._glowSprite.destroy(); // Texture was from canvas, so we should clean it up or let GC handle it if not shared.
+        }
         this._textureFrames = [];
         super.destroy(options);
     }
